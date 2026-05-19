@@ -284,7 +284,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.1.2</span>
+      <span>Ver 1.1.3</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -761,7 +761,8 @@
         if (!resp.ok) throw new Error('Excel file not found');
         const buf = await resp.arrayBuffer();
         
-        const wb = XLSX.read(buf, { type:'array', cellDates: true, sheets: 0, dense: true, cellStyles: false, cellImages: false });
+        // [수정 포인트 1] sheets: 0 옵션을 완전히 제거하여 시트의 위치와 상관없이 모두 읽어들이도록 수정
+        const wb = XLSX.read(buf, { type:'array', cellDates: true, dense: true, cellStyles: false, cellImages: false });
         
         let finalDate = null;
         if (wb.Props && wb.Props.ModifiedDate) finalDate = new Date(wb.Props.ModifiedDate);
@@ -774,17 +775,20 @@
             }
         }
 
-        const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('orderinformation1')) || wb.SheetNames[0];
+        // [수정 포인트 2] 시트 이름 안전하게 찾기
+        let sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('orderinformation1'));
+        if (!sheetName) sheetName = wb.SheetNames[0]; // 혹시라도 못 찾으면 첫 번째 시트로 폴백
+        
         const ws = wb.Sheets[sheetName];
+        if (!ws) throw new Error('Target sheet not found in the workbook');
+
         if (ws["!ref"]) {
           const range = XLSX.utils.decode_range(ws['!ref']);
           ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
         }
         
-        // defval: "" 을 유지하여 빈 셀로 인해 배열 길이가 짧아지는 것을 방지
         const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankRows: false, range: 0 });
 
-        // 오직 지정해주신 "절대 열(알파벳 인덱스)"만 하드코딩으로 고정 사용
         let COL = { 
             ItemNo: 31,         // AF
             ItemName: 32,       // AG
@@ -799,34 +803,37 @@
             ExpectedDate: 14    // O
         };
         
-        // 데이터가 시작되는 진짜 첫 줄 찾기 (스마트 스캔 대신 텍스트 포함 여부로만 심플하게 찾음)
-        let startIndex = 1; // 기본적으로 2번째 줄부터 읽도록 세팅
+        let startIndex = 1; 
         for(let i=0; i<Math.min(20, json.length); i++) {
-            const afValue = String(json[i][31] || '').toLowerCase();
-            // AF열에 'artno' 또는 'item' 이라는 글자가 포함된 줄을 헤더로 간주하고 그 다음 줄부터 읽기 시작
-            if(afValue.includes('artno') || afValue.includes('item')) {
+            // [수정 포인트 3] 빈 행(Row) 방어 코드 추가
+            if (!json[i]) continue;
+            
+            const afValue = String(json[i][31] || '').toLowerCase().replace(/\s/g, '');
+            if(afValue.includes('artno') || afValue.includes('itemno')) {
                 startIndex = i + 1;
                 break;
             }
         }
 
-        // 헤더 아래부터 진짜 데이터만 잘라냄
         rawRows = json.slice(startIndex);
 
-        data = rawRows.map(r => ({
-          itemNo: String(r[COL.ItemNo] ?? '').trim(),
-          itemName: r[COL.ItemName] ?? '',
-          pa: r[COL.PA] ?? '',
-          hfb: r[COL.HFB] ?? '',
-          ssd: r[COL.SSD] ?? '',
-          eds: r[COL.EDS] ?? '',
-          qty: safeNum(r[COL.Qty]),
-          status: r[COL.Status] ?? '',
-          container: String(r[COL.Container] ?? '').trim(),
-          confirmedDate: r[COL.ConfirmedDate],
-          expectedDate: r[COL.ExpectedDate],
-        })).filter(row => row.itemNo && row.itemNo.length >= 4 && !row.itemNo.toLowerCase().includes('art') && !row.itemNo.toLowerCase().includes('item')); 
-        // 혹시라도 헤더가 끌려왔을 경우를 대비해 'art'나 'item' 문자가 포함된 건 필터링해서 버림
+        data = rawRows.map(r => {
+          // [수정 포인트 4] 데이터 매핑 중 에러 방어 코드 보강
+          if (!r) return null;
+          return {
+            itemNo: String(r[COL.ItemNo] ?? '').trim(),
+            itemName: r[COL.ItemName] ?? '',
+            pa: r[COL.PA] ?? '',
+            hfb: r[COL.HFB] ?? '',
+            ssd: r[COL.SSD] ?? '',
+            eds: r[COL.EDS] ?? '',
+            qty: safeNum(r[COL.Qty]),
+            status: r[COL.Status] ?? '',
+            container: String(r[COL.Container] ?? '').trim(),
+            confirmedDate: r[COL.ConfirmedDate],
+            expectedDate: r[COL.ExpectedDate],
+          };
+        }).filter(row => row && row.itemNo && row.itemNo.length >= 4 && !row.itemNo.toLowerCase().includes('art') && !row.itemNo.toLowerCase().includes('item')); 
         
         updateStatus('connected');
         
