@@ -12,7 +12,6 @@
 
   <title>STO582 Goods Arrival Plan Search</title>
 
-  <!-- Google Analytics / Tag Manager (기존 373의 것 유지, 필요시 변경) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3MWM51MSF8"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -39,10 +38,9 @@
     :root { --ikea-blue:#0058a3; --ikea-yellow:#ffdb00; --bg-color:#f5f7f8; --text-dark:#111; --sidebar-width:250px; }
     body { font-family:'Noto Sans KR','Roboto',sans-serif; background-color:var(--bg-color); margin:0; padding:0; color:var(--text-dark); display:flex; flex-direction:column; min-height:100vh; }
 
-    /* Header (Yellow BG, White Text, Blue Links) */
+    /* Header */
     header { background-color:var(--ikea-yellow); color:#fff; padding:0 40px; height:100px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:2000; width:100%; box-sizing:border-box; flex-shrink:0; }
     .header-left{ display:flex; flex-direction:column; justify-content:center; align-items:flex-start; }
-    /* Added text-shadow for readability of white text on yellow bg */
     .main-title{ color:#fff; text-shadow: 0px 1px 4px rgba(0,0,0,0.25); text-decoration:none; font-size:1.4rem; font-weight:700; display:flex; align-items:center; gap:10px; transition:opacity .2s; }
     .link-group{ display:flex; gap:20px; margin-top:5px; margin-left:38px; }
     .header-sub-link{ color:var(--ikea-blue); text-decoration:none; font-weight:700; font-size:.95rem; font-family:'Roboto',sans-serif; display:flex; align-items:center; gap:6px; }
@@ -286,7 +284,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.1.0</span>
+      <span>Ver 1.1.2</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -776,29 +774,59 @@
             }
         }
 
-        const sheetName = wb.SheetNames.includes('Orderinformation1') ? 'Orderinformation1' : wb.SheetNames[0];
+        const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('orderinformation1')) || wb.SheetNames[0];
         const ws = wb.Sheets[sheetName];
         if (ws["!ref"]) {
           const range = XLSX.utils.decode_range(ws['!ref']);
           ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
         }
+        
+        // defval: "" 을 유지하여 빈 셀로 인해 배열 길이가 짧아지는 것을 방지
         const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankRows: false, range: 0 });
-        rawRows = json.slice(1);
 
-        // 절대 열(Index) 매핑 적용 (A=0 기준)
+        // 오직 지정해주신 "절대 열(알파벳 인덱스)"만 하드코딩으로 고정 사용
+        let COL = { 
+            ItemNo: 31,         // AF
+            ItemName: 32,       // AG
+            PA: 30,             // AE
+            HFB: 29,            // AD
+            SSD: 39,            // AN
+            EDS: 40,            // AO
+            Qty: 33,            // AH
+            Status: 9,          // J
+            Container: 35,      // AJ
+            ConfirmedDate: 36,  // AK
+            ExpectedDate: 14    // O
+        };
+        
+        // 데이터가 시작되는 진짜 첫 줄 찾기 (스마트 스캔 대신 텍스트 포함 여부로만 심플하게 찾음)
+        let startIndex = 1; // 기본적으로 2번째 줄부터 읽도록 세팅
+        for(let i=0; i<Math.min(20, json.length); i++) {
+            const afValue = String(json[i][31] || '').toLowerCase();
+            // AF열에 'artno' 또는 'item' 이라는 글자가 포함된 줄을 헤더로 간주하고 그 다음 줄부터 읽기 시작
+            if(afValue.includes('artno') || afValue.includes('item')) {
+                startIndex = i + 1;
+                break;
+            }
+        }
+
+        // 헤더 아래부터 진짜 데이터만 잘라냄
+        rawRows = json.slice(startIndex);
+
         data = rawRows.map(r => ({
-          itemNo: String(r[31] ?? '').trim(),         // AF
-          itemName: r[32] ?? '',                      // AG
-          pa: r[30] ?? '',                            // AE
-          hfb: r[29] ?? '',                           // AD
-          ssd: r[39] ?? '',                           // AN
-          eds: r[40] ?? '',                           // AO
-          qty: safeNum(r[33]),                        // AH
-          status: r[9] ?? '',                         // J
-          container: String(r[35] ?? '').trim(),      // AJ
-          confirmedDate: r[36],                       // AK
-          expectedDate: r[14],                        // O
-        }));
+          itemNo: String(r[COL.ItemNo] ?? '').trim(),
+          itemName: r[COL.ItemName] ?? '',
+          pa: r[COL.PA] ?? '',
+          hfb: r[COL.HFB] ?? '',
+          ssd: r[COL.SSD] ?? '',
+          eds: r[COL.EDS] ?? '',
+          qty: safeNum(r[COL.Qty]),
+          status: r[COL.Status] ?? '',
+          container: String(r[COL.Container] ?? '').trim(),
+          confirmedDate: r[COL.ConfirmedDate],
+          expectedDate: r[COL.ExpectedDate],
+        })).filter(row => row.itemNo && row.itemNo.length >= 4 && !row.itemNo.toLowerCase().includes('art') && !row.itemNo.toLowerCase().includes('item')); 
+        // 혹시라도 헤더가 끌려왔을 경우를 대비해 'art'나 'item' 문자가 포함된 건 필터링해서 버림
         
         updateStatus('connected');
         
@@ -824,8 +852,13 @@
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error("API Error");
             const files = await response.json();
-            // .xlsb 파일 대상 필터링
-            const targetFiles = files.filter(f => f.name.toLowerCase().endsWith(".xlsb"));
+            
+            const targetFiles = files.filter(f => 
+                f.name.toLowerCase().endsWith(".xlsb") && 
+                !f.name.startsWith("~$") && 
+                f.name.toLowerCase().includes("goods arrival")
+            );
+            
             if (targetFiles.length === 0) return FALLBACK_FILE_URL;
             targetFiles.sort((a, b) => b.name.localeCompare(a.name));
             return targetFiles[0].download_url;
@@ -875,20 +908,17 @@
       const expDate = excelToDate(row.expectedDate);
       const today = new Date(); today.setHours(0,0,0,0);
 
-      // 1. Confirmed (AK열)
       if (confDate) {
           const dd = new Date(confDate); dd.setHours(0,0,0,0);
           return { type:'confirmed', dateObj: dd, label: `<span class="date-badge confirmed">${ymd(dd)}</span>` };
       }
 
-      // 2. Estimated (O열)
       if (expDate) {
           const dd = new Date(expDate); dd.setHours(0,0,0,0);
           const wk = getWeekNumber(dd);
           return { type:'estimated', dateObj: dd, label: `<span class="date-badge estimated">WK${wk} 예상</span>` };
       }
 
-      // 3. TBD (Red) - J열 Status 사용
       const statusTxt = row.status ? String(row.status).toUpperCase() : "미정";
       return { type:'tbd', dateObj: null, label: `<span class="date-badge tbd">${statusTxt}</span>` };
     }
@@ -1292,6 +1322,11 @@
         visibleDates.forEach(d => { tbodyHtml += `<td class="qty-cell">${r.dates[d] || ""}</td>`; });
         tbodyHtml += `</tr>`;
       }
+      
+      if (filteredRows.length === 0) {
+        tbodyHtml = `<tr><td colspan="20" style="padding:50px; text-align:center; color:#888; font-size:1.1rem; background-color:#fff;"><i class="fas fa-box-open" style="font-size:2rem; color:#ccc; margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:0.85rem; color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
+      }
+      
       document.getElementById('pivotBody').innerHTML = tbodyHtml;
     }
 
