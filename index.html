@@ -38,7 +38,7 @@
     :root { --ikea-blue:#0058a3; --ikea-yellow:#ffdb00; --bg-color:#f5f7f8; --text-dark:#111; --sidebar-width:250px; }
     body { font-family:'Noto Sans KR','Roboto',sans-serif; background-color:var(--bg-color); margin:0; padding:0; color:var(--text-dark); display:flex; flex-direction:column; min-height:100vh; }
 
-    /* Header (검정/진회색 적용) */
+    /* Header (Yellow BG, Dark Text) */
     header { background-color:var(--ikea-yellow); color:#111; padding:0 40px; height:100px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:2000; width:100%; box-sizing:border-box; flex-shrink:0; }
     .header-left{ display:flex; flex-direction:column; justify-content:center; align-items:flex-start; }
     .main-title{ color:#111; text-decoration:none; font-size:1.4rem; font-weight:700; display:flex; align-items:center; gap:10px; transition:opacity .2s; }
@@ -284,7 +284,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.2.0 (Performance Update)</span>
+      <span>Ver 1.2.1 (Performance Fix)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -574,7 +574,7 @@
   <script>
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    // GitHub 레포지토리 정보 갱신 (STO582)
+    // GitHub 레포지토리 정보 (STO582)
     const GITHUB_OWNER = 'STO-582'; 
     const GITHUB_REPO = 'Goods-arrival'; 
     const FALLBACK_FILE_URL = './SSS ONLY_Goods Arrival.xlsb'; 
@@ -782,7 +782,7 @@
         return `<b>${raw}</b>`;
     }
 
-    // 메인 로딩 함수 (IndexedDB 캐싱 로직 탑재)
+    // 메인 로딩 함수 (IndexedDB 캐싱 로직 & 시트 다이렉트 타겟팅 탑재)
     window.onload = async function(){
       try{
         const urlParams = new URLSearchParams(window.location.search);
@@ -796,7 +796,7 @@
             if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
         }
 
-        // 1. 파일 정보(SHA)만 먼저 가져오기
+        // 1. 파일 정보(SHA) 가져오기
         const fileInfo = await fetchLatestExcelInfo();
         if (!fileInfo) throw new Error('Excel file not found on GitHub');
 
@@ -804,7 +804,7 @@
         const cached = await loadFromCache('excelData');
         
         if (cached && cached.sha === fileInfo.sha) {
-            // 캐시와 원격 파일이 동일하다면, 다운로드 건너뛰고 즉시 로드!
+            // 캐시 데이터가 최신이면 즉각 로드!
             data = cached.data;
             document.getElementById('data-update-date').innerText = `data update : ${cached.updateDateStr}`;
             
@@ -818,12 +818,28 @@
             return;
         }
 
-        // 3. 파일이 갱신되었거나 캐시가 없으면 엑셀 다운로드 (B1 최적화: cellDates/cellNF 해제)
+        // 3. 캐시가 없거나 파일 갱신 시 엑셀 다운로드 
         const resp = await fetch(fileInfo.url);
         const headerDateStr = resp.headers.get('Last-Modified');
         const buf = await resp.arrayBuffer();
         
-        const wb = XLSX.read(buf, { type:'array', dense: true, cellDates: false, cellStyles: false, cellNF: false });
+        // [A2 & 근본 최적화] bookSheets: true 로 파일 안의 시트 이름 정보만 0.01초 만에 훑어옵니다. (파싱 안함)
+        const wbMeta = XLSX.read(buf, { type: 'array', bookSheets: true });
+        
+        // 무조건 7번째 시트(인덱스 6) 이름을 타겟팅
+        const targetSheetName = wbMeta.SheetNames[6];
+        if (!targetSheetName) throw new Error("7번째 시트를 찾을 수 없습니다.");
+
+        // 알아낸 7번째 시트 이름만 집어넣어서 정확히 "그 시트 하나만" 초고속으로 파싱 (기존 sheets: 0 효과 동일)
+        // [B1 최적화] cellDates:false, cellNF:false 적용
+        const wb = XLSX.read(buf, { 
+            type: 'array', 
+            sheets: [targetSheetName], 
+            dense: true, 
+            cellDates: false, 
+            cellStyles: false, 
+            cellNF: false 
+        });
         
         let finalDate = null;
         if (wb.Props && wb.Props.ModifiedDate) finalDate = new Date(wb.Props.ModifiedDate);
@@ -839,16 +855,13 @@
             }
         }
 
-        // [A2 최적화] 무조건 7번째 시트 타겟팅 (인덱스 6)
-        const ws = wb.Sheets[wb.SheetNames[6]];
-        if (!ws) throw new Error('7번째 시트(orderinformation1)를 찾을 수 없습니다.');
-        
+        const ws = wb.Sheets[targetSheetName];
         if (ws["!ref"]) {
           const range = XLSX.utils.decode_range(ws['!ref']);
           ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
         }
         
-        // [B2 최적화] 헤더 건너뛰고 파싱
+        // [B2 최적화] header: 1로 단순화
         const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankRows: false });
 
         let COL = { 
@@ -861,7 +874,7 @@
         for(let i=0; i<Math.min(20, json.length); i++) {
             if (!json[i]) continue;
             const afValue = String(json[i][31] || '').toLowerCase().replace(/\s/g, '');
-            if(afValue.includes('artno') || afValue.includes('itemno')) {
+            if(afValue.includes('artno') || afValue.includes('item')) {
                 startIndex = i + 1;
                 break;
             }
@@ -869,7 +882,7 @@
 
         rawRows = json.slice(startIndex);
         
-        // [B3 최적화] map/filter 대신 단일 for 루프 적용
+        // [B3 최적화] 이중 루프(map+filter) 대신 for 루프 1회 수행
         data = [];
         for (let i = 0; i < rawRows.length; i++) {
             const r = rawRows[i];
@@ -896,7 +909,7 @@
             });
         }
         
-        // 데이터 캐시 저장
+        // [C 최적화] 파싱된 데이터를 로컬 브라우저 캐시에 저장
         await saveToCache('excelData', {
             sha: fileInfo.sha,
             data: data,
@@ -1010,7 +1023,7 @@
           cleaned: t.replace(/^0+(?=\d)/, '') 
       }));
 
-      // [B5 최적화] 검색 로직 Early Break 적용
+      // [B5 최적화] 검색 시 early break
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
         const itemNo = String(row.itemNo||'').replace(/\s+/g,'').toLowerCase();
@@ -1024,7 +1037,7 @@
                 (itemNo && itemNo.includes(tObj.raw)) || 
                 (cont && cont.includes(tObj.raw))) {
                 isMatch = true;
-                break; // 일치하는 즉시 루프 탈출
+                break;
             }
         }
 
@@ -1094,7 +1107,7 @@
           document.getElementById('nextDeliveryDate').innerText = "-"; 
       }
       
-      // [B4 최적화] DOM 렌더링을 문자열 조작으로 일괄 처리
+      // [B4 최적화] DOM 렌더링 문자열 조립 후 주입
       let pcTbodyHtml = '';
       results.forEach(row => {
         pcTbodyHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo, row.ssdRaw, row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
@@ -1402,7 +1415,7 @@
 
       displayedPivotRows = filteredRows;
 
-      // [B4 최적화] DOM 렌더링 문자열 조작
+      // [B4 최적화] DOM 렌더링 문자열 조립 후 주입
       let tbodyHtml = "";
       const count = Math.min(filteredRows.length, 3000);
       for(let i=0; i<count; i++) {
