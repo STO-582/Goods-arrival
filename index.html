@@ -284,7 +284,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.4.0 (Ultra Fast Load)</span>
+      <span>Ver 1.3.0 (Optimized Full Build)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -412,8 +412,8 @@
 
       <div id="tab-arrival" class="tab-content">
         <div class="mobile-only-filters">
-            <div class="pf-group"><label class="pf-label">HFB</label><input type="text" id="pf-hfb" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div>
-            <div class="pf-group"><label class="pf-label">PA</label><input type="text" id="pf-pa" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div>
+            <div class="pf-group"><label class="pf-label">HFB</label><input type="text" id="pf-hfb" class="pf-input" placeholder="All" onkeyup="debouncedFilterPivot()"></div>
+            <div class="pf-group"><label class="pf-label">PA</label><input type="text" id="pf-pa" class="pf-input" placeholder="All" onkeyup="debouncedFilterPivot()"></div>
         </div>
         <div class="filter-tray-container">
           <div class="tray-header"><div class="tray-title"><i class="fas fa-filter"></i> Date Filter (Click to Toggle)</div><button class="btn-clear-filter" onclick="clearDateFilters()"><i class="fas fa-sync-alt"></i> Show All</button></div>
@@ -603,6 +603,14 @@
     const STORE_NAME = 'arrival_data';
     const CACHE_KEY = 'excelData';
 
+    // Worker/Pipeline state
+    let excelWorker = null;
+    let workerReqId = 0;
+    const workerPending = new Map();
+    let initialLoadComplete = false;
+    let latestRequestedSearchText = '';
+    const MAX_IMAGE_FETCH = 5;
+
     function openDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, 1);
@@ -639,11 +647,65 @@
         });
     }
 
+    function initExcelWorker() {
+      if (excelWorker) return;
+      const workerCode = `
+        self.importScripts('https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js');
+        self.onmessage = function(e) {
+          const { id, buf } = e.data;
+          try {
+            const wbMeta = XLSX.read(buf, { type: 'array', bookSheets: true });
+            const targetSheetName = wbMeta.SheetNames[6];
+            if (!targetSheetName) throw new Error('7번째 시트를 찾을 수 없습니다.');
+            const wb = XLSX.read(buf, {
+              type: 'array',
+              sheets: [targetSheetName],
+              dense: true,
+              cellDates: false,
+              cellStyles: false,
+              cellNF: false
+            });
+            const ws = wb.Sheets[targetSheetName];
+            if (ws['!ref']) {
+              const range = XLSX.utils.decode_range(ws['!ref']);
+              ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
+            }
+            const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankRows: false });
+            const modifiedDate = wb.Props && wb.Props.ModifiedDate ? new Date(wb.Props.ModifiedDate).getTime() : null;
+            self.postMessage({ id, ok: true, json, modifiedDate });
+          } catch (err) {
+            self.postMessage({ id, ok: false, error: err && err.message ? err.message : String(err) });
+          }
+        };
+      `;
+      excelWorker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
+      excelWorker.onmessage = function(e) {
+        const { id, ok, json, modifiedDate, error } = e.data || {};
+        const pending = workerPending.get(id);
+        if (!pending) return;
+        workerPending.delete(id);
+        if (ok) pending.resolve({ json, modifiedDate });
+        else pending.reject(new Error(error || 'Worker parse failed'));
+      };
+    }
+
+    function parseExcelInWorker(buf) {
+      initExcelWorker();
+      return new Promise((resolve, reject) => {
+        const id = ++workerReqId;
+        workerPending.set(id, { resolve, reject });
+        excelWorker.postMessage({ id, buf }, [buf]);
+      });
+    }
+
     const debounce = (fn, t=300) => { let tm; return (...a)=>{clearTimeout(tm); tm=setTimeout(()=>fn(...a), t);} };
     const safeNum = v => Number.isFinite(+v) ? +v : 0;
     const pad2 = n => String(n).padStart(2,'0');
     const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
     const addDays = (d, n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+    const scheduleIdle = window.requestIdleCallback ? (fn)=>requestIdleCallback(fn, { timeout: 500 }) : (fn)=>setTimeout(fn, 0);
+    const debouncedFilterPivot = debounce(() => filterPivot(), 400);
+
     function getWeekNumber(d){
       const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       const dayNr = (target.getUTCDay() + 6) % 7; 
@@ -833,9 +895,39 @@
         return out;
     }
 
-    // 메인 로딩 함수 
+    async function loadExcelFile(fileUrl) {
+      const resp = await fetch(fileUrl, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('Excel download failed');
+      const headerDateStr = resp.headers.get('Last-Modified');
+      const buf = await resp.arrayBuffer();
+      const { json, modifiedDate } = await parseExcelInWorker(buf);
+      let finalDateMs = modifiedDate || null;
+      if (!finalDateMs && headerDateStr) {
+        const parsed = new Date(headerDateStr);
+        if (!isNaN(parsed)) finalDateMs = parsed.getTime();
+      }
+      return {
+        data: parseRowsToData(json),
+        finalDateMs,
+        updateDateStr: finalDateMs ? ymd(new Date(finalDateMs)) : '-'
+      };
+    }
+
+    function afterDataRefresh() {
+      if (document.getElementById('tab-arrival').classList.contains('active')) {
+        allPivotRows = [];
+        processPivotData(data);
+      }
+      const currentInput = document.getElementById('itemInput')?.value?.trim();
+      if (document.getElementById('resultSection').style.display === 'block' && currentInput) {
+        performSearch(true);
+      }
+    }
+
+    // 메인 로딩 함수 (즉시 캐시 표시 + 백그라운드 최신화 + 워커 파싱)
     window.onload = async function(){
       try{
+        initExcelWorker();
         const urlParams = new URLSearchParams(window.location.search);
         const tabParam = urlParams.get('tab');
         
@@ -847,7 +939,7 @@
             if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
         }
 
-        // 1) 로컬 캐시 즉시 적용 (있다면 0초만에 화면 그림)
+        // 1) 캐시 먼저 즉시 표시
         let cached = null;
         try { cached = await loadFromCache(CACHE_KEY); } catch (_) {}
         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
@@ -855,78 +947,35 @@
             applyMetaDate(cached.finalDateMs, cached.updateDateStr);
             updateStatus('connected');
             finishLoading(tabParam, urlParams);
+            initialLoadComplete = true;
         }
 
-        // 2) 백그라운드에서 최신 파일 확인
+        // 2) 최신 파일 정보 가져오기
         const fileInfo = await fetchLatestExcelInfo();
         if (!fileInfo) throw new Error('Excel file not found on GitHub');
 
-        // 3) 캐시가 최신이면 다운로드 중단
-        if (cached && cached.sha === fileInfo.sha) return;
-
-        // 4) [핵심 성능 개선] Worker 버리고 Main Thread에서 Direct Parsing
-        const resp = await fetch(fileInfo.url, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('Excel download failed');
-        const headerDateStr = resp.headers.get('Last-Modified');
-        const buf = await resp.arrayBuffer();
-
-        // Single Pass Read: 7번째 시트(index 6)만 한 방에 파싱
-        const wb = XLSX.read(buf, { 
-            type: 'array', 
-            sheets: 6, // 7번째 시트 인덱스 고정 
-            dense: true, 
-            cellDates: false, 
-            cellStyles: false, 
-            cellNF: false 
-        });
-
-        // 날짜 파악
-        let finalDateMs = null;
-        if (wb.Props && wb.Props.ModifiedDate) {
-            finalDateMs = new Date(wb.Props.ModifiedDate).getTime();
-        } else if (headerDateStr) {
-            const parsed = new Date(headerDateStr);
-            if (!isNaN(parsed)) finalDateMs = parsed.getTime();
+        // 3) 캐시가 최신이면 끝
+        if (cached && cached.sha === fileInfo.sha) {
+            return;
         }
-        const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
 
-        // 시트 추출
-        const targetSheetName = wb.SheetNames[0]; 
-        const ws = wb.Sheets[targetSheetName];
-        if (!ws) throw new Error('7번째 시트 로딩 실패');
-        if (ws['!ref']) {
-            const range = XLSX.utils.decode_range(ws['!ref']);
-            ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
-        }
-        
-        const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankRows: false });
-        
-        // 데이터 정제
-        data = parseRowsToData(json);
-        applyMetaDate(finalDateMs, updateDateStr);
-        
-        // 캐시 업데이트
+        // 4) 최신 파일 다운로드/파싱 (워커)
+        const loaded = await loadExcelFile(fileInfo.url);
+        data = loaded.data;
+        applyMetaDate(loaded.finalDateMs, loaded.updateDateStr);
         await saveToCache(CACHE_KEY, {
             sha: fileInfo.sha,
             data: data,
-            updateDateStr: updateDateStr,
-            finalDateMs: finalDateMs
+            updateDateStr: loaded.updateDateStr,
+            finalDateMs: loaded.finalDateMs
         });
-        
         updateStatus('connected');
 
-        // 첫 로딩에 캐시가 없었으면 지금 그리기, 있었으면 몰래 데이터만 교체 후 새로고침
-        if (!cached) {
+        if (!initialLoadComplete) {
             finishLoading(tabParam, urlParams);
+            initialLoadComplete = true;
         } else {
-            if (document.getElementById('tab-arrival').classList.contains('active')) {
-                allPivotRows = [];
-                processPivotData(data);
-            }
-            const currentInput = document.getElementById('itemInput')?.value?.trim();
-            if (document.getElementById('resultSection').style.display === 'block' && currentInput) {
-                performSearch();
-            }
+            afterDataRefresh();
         }
 
       } catch (error) { console.error(error); updateStatus('error'); }
@@ -992,10 +1041,11 @@
 
     document.getElementById('itemInput').addEventListener('keypress', e => { if (e.key==='Enter') performSearch(); });
     
-    function performSearch() {
+    function performSearch(isRefreshOnly = false) {
       const raw = document.getElementById('itemInput').value.trim();
-      if (!raw) { alert("제품번호를 입력해주세요."); return; }
+      if (!raw) { if(!isRefreshOnly) alert("제품번호를 입력해주세요."); return; }
       localStorage.setItem('last_search_item', raw);
+      latestRequestedSearchText = raw;
       
       const targets = raw.split(/[\s,]+/).map(t => t.replace(/[^0-9A-Za-z]/g,'').toLowerCase()).filter(t => t);
       if (targets.length === 0) return;
@@ -1007,7 +1057,6 @@
     function determinePlanned(row){
       const confDate = excelToDate(row.confirmedDate);
       const expDate = excelToDate(row.expectedDate);
-      const today = new Date(); today.setHours(0,0,0,0);
 
       if (confDate) {
           const dd = new Date(confDate); dd.setHours(0,0,0,0);
@@ -1119,7 +1168,7 @@
       results.forEach(row => {
         pcTbodyHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo, row.ssdRaw, row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
       });
-      pcTbody.innerHTML = pcTbodyHtml;
+      requestAnimationFrame(() => { pcTbody.innerHTML = pcTbodyHtml; });
       
       if(results.length > 0) {
         const grouped = {};
@@ -1172,7 +1221,7 @@
                 `;
             });
         }
-        mobileScheduleList.innerHTML = mobileHtml;
+        requestAnimationFrame(() => { mobileScheduleList.innerHTML = mobileHtml; });
       }
 
       const uniqueItems = [...new Set(results.map(r => r.itemNo))];
@@ -1197,7 +1246,7 @@
 
             let imgUrl = imageCache.get(paddedNo);
 
-            if (!imgUrl && fetchCount < 5) {
+            if (!imgUrl && fetchCount < MAX_IMAGE_FETCH) {
                 fetchCount++;
                 try {
                     const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
@@ -1233,6 +1282,9 @@
     }
 
     function processPivotData(list, shouldRender = true) {
+      const loader = document.getElementById('pivotLoading');
+      if (loader) loader.style.display = 'block';
+      scheduleIdle(() => {
         const today = new Date(); today.setHours(0,0,0,0);
         const pivotMap = {}; const uniqueDates = new Set(); let hasNotFixed = false;
 
@@ -1269,6 +1321,8 @@
         });
 
         if(shouldRender) updateTableDisplay();
+        if (loader) loader.style.display = 'none';
+      });
     }
 
     function renderDateFilterChips(dates, hasNotFixed) {
@@ -1286,12 +1340,6 @@
 
     function clearDateFilters() { selectedDateFilters.clear(); document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active')); filterPivot(); }
     
-    function debounceFilter() { 
-        const hfb = document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value;
-        if(hfb) localStorage.setItem('last_hfb', hfb);
-        debounce(filterPivot, 400)(); 
-    }
-
     function filterPivot() { updateTableDisplay(); }
     
     function sortTable(col) {
@@ -1352,10 +1400,10 @@
       
       if (newHeaderSignature !== lastRenderedDateColumns) {
           let theadHtml = `<tr>
-            <th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-            <th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-            <th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-            <th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>`;
+            <th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debouncedFilterPivot()" onclick="event.stopPropagation()"></th>
+            <th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debouncedFilterPivot()" onclick="event.stopPropagation()"></th>
+            <th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debouncedFilterPivot()" onclick="event.stopPropagation()"></th>
+            <th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debouncedFilterPivot()" onclick="event.stopPropagation()"></th>`;
           
           if(showNotFixed) theadHtml += `<th class="not-fixed-col" onclick="sortTable('Not Fixed')">미정/예상<br>(Not Fixed) ${getSortIcon('Not Fixed')}</th>`;
           visibleDates.forEach(d => { 
@@ -1436,8 +1484,7 @@
       if (filteredRows.length === 0) {
         tbodyHtml = `<tr><td colspan="20" style="padding:50px; text-align:center; color:#888; font-size:1.1rem; background-color:#fff;"><i class="fas fa-box-open" style="font-size:2rem; color:#ccc; margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:0.85rem; color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
       }
-      
-      document.getElementById('pivotBody').innerHTML = tbodyHtml;
+      requestAnimationFrame(() => { document.getElementById('pivotBody').innerHTML = tbodyHtml; });
     }
 
     function exportToXlsx() {
