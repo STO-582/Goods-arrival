@@ -24,11 +24,9 @@
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
       tailwind.config = { corePlugins: { preflight: false } }
@@ -284,7 +282,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.5.0 (Ultimate Worker Build)</span>
+      <span>Ver 1.6.0 (Chunking + Worker Fast Load)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -645,7 +643,7 @@
         });
     }
 
-    // [최적화 V1.5.0 핵심] 완벽하게 격리된 Web Worker. 파싱부터 데이터 정제까지 안에서 다 끝냅니다.
+    // [최적화 V1.6.0 핵심] Transferable Object를 활용하여 메인 스레드 멈춤 없이 1초만에 다이어트 데이터만 넘겨받음
     function initExcelWorker() {
       if (excelWorker) return;
       const workerCode = `
@@ -654,22 +652,22 @@
         function safeNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
         self.onmessage = function(e) {
-          const { id, buf } = e.data;
+          const { id, buf } = e.data; // ArrayBuffer를 소유권 이전 방식으로 받아옴 (초고속)
           try {
-            const wbMeta = XLSX.read(buf, { type: 'array', bookSheets: true });
-            const targetSheetName = wbMeta.SheetNames[6];
-            if (!targetSheetName) throw new Error('7번째 시트를 찾을 수 없습니다.');
-
+            // 오직 7번째 시트만 다이렉트 파싱 (가장 가벼운 옵션 적용)
             const wb = XLSX.read(buf, {
               type: 'array',
-              sheets: [targetSheetName],
+              sheets: 6, // 7번째 시트(index 6) 하드코딩
               dense: true,
               cellDates: false,
               cellStyles: false,
               cellNF: false
             });
 
+            const targetSheetName = wb.SheetNames[0];
             const ws = wb.Sheets[targetSheetName];
+            if (!ws) throw new Error('7번째 시트(orderinformation1) 데이터가 없습니다.');
+
             if (ws['!ref']) {
               const range = XLSX.utils.decode_range(ws['!ref']);
               ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
@@ -692,6 +690,7 @@
             const rawRows = json.slice(startIndex);
             const out = [];
 
+            // 쓰레기 데이터를 모두 버리고 가벼운 알짜 객체만 추출
             for (let i = 0; i < rawRows.length; i++) {
                 const r = rawRows[i];
                 if (!r) continue;
@@ -738,6 +737,7 @@
       return new Promise((resolve, reject) => {
         const id = ++workerReqId;
         workerPending.set(id, { resolve, reject });
+        // ArrayBuffer의 소유권을 워커로 완전히 넘겨 복사 병목을 차단 (Transferable Object)
         excelWorker.postMessage({ id, buf }, [buf]);
       });
     }
@@ -901,6 +901,7 @@
       if (!resp.ok) throw new Error('Excel download failed');
       const headerDateStr = resp.headers.get('Last-Modified');
       const buf = await resp.arrayBuffer();
+      // 워커로 넘길 때 통신 병목 없이 엑셀 데이터 파싱
       const { data: parsedData, modifiedDate } = await parseExcelInWorker(buf);
       
       let finalDateMs = modifiedDate || null;
@@ -926,7 +927,7 @@
       }
     }
 
-    // 메인 로딩 함수 (즉시 캐시 표시 + 백그라운드 최신화 + 완벽한 Worker 파싱)
+    // 메인 로딩 함수
     window.onload = async function(){
       try{
         initExcelWorker();
@@ -941,7 +942,7 @@
             if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
         }
 
-        // 1) 캐시 먼저 즉시 표시
+        // 1) 로컬 캐시 즉시 적용 (있다면 0초만에 화면 그림)
         let cached = null;
         try { cached = await loadFromCache(CACHE_KEY); } catch (_) {}
         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
@@ -952,22 +953,19 @@
             initialLoadComplete = true;
         }
 
-        // 2) 최신 파일 정보 가져오기
+        // 2) 백그라운드에서 최신 파일 확인
         const fileInfo = await fetchLatestExcelInfo();
         if (!fileInfo) throw new Error('Excel file not found on GitHub');
 
-        // 3) 캐시가 최신이면 끝
-        if (cached && cached.sha === fileInfo.sha) {
-            return;
-        }
+        // 3) 캐시가 최신이면 다운로드 중단
+        if (cached && cached.sha === fileInfo.sha) return;
 
-        // 4) 최신 파일 다운로드/파싱 (워커에서 병목 없이 완료 후 가벼운 배열만 수신)
+        // 4) 최신 파일 다운로드 및 파싱
         const loaded = await loadExcelFile(fileInfo.url);
         data = loaded.data;
         applyMetaDate(loaded.finalDateMs, loaded.updateDateStr);
-        
-        // 5) 데이터 적용 및 렌더링 즉시 수행
         updateStatus('connected');
+
         if (!initialLoadComplete) {
             finishLoading(tabParam, urlParams);
             initialLoadComplete = true;
@@ -975,7 +973,7 @@
             afterDataRefresh();
         }
 
-        // 6) 백그라운드에서 캐시 저장
+        // 5) 캐시 갱신
         saveToCache(CACHE_KEY, {
             sha: fileInfo.sha,
             data: data,
@@ -1173,7 +1171,7 @@
       results.forEach(row => {
         pcTbodyHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo, row.ssdRaw, row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
       });
-      pcTbody.innerHTML = pcTbodyHtml;
+      requestAnimationFrame(() => { pcTbody.innerHTML = pcTbodyHtml; });
       
       if(results.length > 0) {
         const grouped = {};
@@ -1226,7 +1224,7 @@
                 `;
             });
         }
-        mobileScheduleList.innerHTML = mobileHtml;
+        requestAnimationFrame(() => { mobileScheduleList.innerHTML = mobileHtml; });
       }
 
       const uniqueItems = [...new Set(results.map(r => r.itemNo))];
@@ -1286,6 +1284,7 @@
         }
     }
 
+    // [최적화 V1.6.0 핵심] Chunking을 통한 부드러운 테이블 렌더링
     function processPivotData(list, shouldRender = true) {
         const today = new Date(); today.setHours(0,0,0,0);
         const pivotMap = {}; const uniqueDates = new Set(); let hasNotFixed = false;
@@ -1340,7 +1339,6 @@
 
     function clearDateFilters() { selectedDateFilters.clear(); document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active')); filterPivot(); }
     
-    // [버그 수정 1] 명확한 필터 디바운싱 로직 할당
     const debounceFilter = debounce(() => { 
         const hfb = document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value;
         if(hfb) localStorage.setItem('last_hfb', hfb);
@@ -1477,22 +1475,39 @@
 
       displayedPivotRows = filteredRows;
 
-      let tbodyHtml = "";
-      const count = Math.min(filteredRows.length, 3000);
-      for(let i=0; i<count; i++) {
-        const r = filteredRows[i];
-        const nfVal = (showNotFixed && r.notFixedQty > 0) ? r.notFixedQty : "";
-        tbodyHtml += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo, r.ssdRaw, r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`;
-        if(showNotFixed) tbodyHtml += `<td class="not-fixed-col">${nfVal}</td>`;
-        visibleDates.forEach(d => { tbodyHtml += `<td class="qty-cell">${r.dates[d] || ""}</td>`; });
-        tbodyHtml += `</tr>`;
-      }
+      // [최적화 V1.6.0 핵심] Chunking Rendering (화면 버벅임 방지)
+      const tbody = document.getElementById('pivotBody');
+      tbody.innerHTML = "";
       
       if (filteredRows.length === 0) {
-        tbodyHtml = `<tr><td colspan="20" style="padding:50px; text-align:center; color:#888; font-size:1.1rem; background-color:#fff;"><i class="fas fa-box-open" style="font-size:2rem; color:#ccc; margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:0.85rem; color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="20" style="padding:50px; text-align:center; color:#888; font-size:1.1rem; background-color:#fff;"><i class="fas fa-box-open" style="font-size:2rem; color:#ccc; margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:0.85rem; color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
+        return;
+      }
+
+      let currentIndex = 0;
+      const CHUNK_SIZE = 100;
+      const MAX_ROWS = Math.min(filteredRows.length, 3000);
+
+      function renderChunk() {
+          let chunkHtml = "";
+          const end = Math.min(currentIndex + CHUNK_SIZE, MAX_ROWS);
+          for (; currentIndex < end; currentIndex++) {
+              const r = filteredRows[currentIndex];
+              const nfVal = (showNotFixed && r.notFixedQty > 0) ? r.notFixedQty : "";
+              chunkHtml += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo, r.ssdRaw, r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`;
+              if (showNotFixed) chunkHtml += `<td class="not-fixed-col">${nfVal}</td>`;
+              visibleDates.forEach(d => { chunkHtml += `<td class="qty-cell">${r.dates[d] || ""}</td>`; });
+              chunkHtml += `</tr>`;
+          }
+          
+          tbody.insertAdjacentHTML('beforeend', chunkHtml);
+
+          if (currentIndex < MAX_ROWS) {
+              requestAnimationFrame(renderChunk);
+          }
       }
       
-      document.getElementById('pivotBody').innerHTML = tbodyHtml;
+      requestAnimationFrame(renderChunk);
     }
 
     function exportToXlsx() {
