@@ -20,6 +20,9 @@
     gtag('config', 'G-3MWM51MSF8');
   </script>
 
+  <link rel="preload" href="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" as="script" />
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
   
@@ -268,7 +271,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.8.1 (Dashboard Logic Fix)</span>
+      <span>Ver 1.8.2 (Progress Fix & Preload)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -808,29 +811,36 @@
   }
 
   async function fetchAndParse() {
-    setProgress(10);
-    const resp = await fetch(EXCEL_FILE_URL, { cache: 'no-store' });
-    if (!resp.ok) throw new Error('File fetch failed: ' + resp.status);
-    setProgress(40);
+    try {
+      setProgress(10);
+      updateStatus('downloading');
+      const resp = await fetch(EXCEL_FILE_URL, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('File fetch failed: ' + resp.status);
+      setProgress(40);
 
-    const eTag    = resp.headers.get('ETag');
-    const lastMod = resp.headers.get('Last-Modified');
-    const sha     = eTag || lastMod || 'unknown';
+      const eTag    = resp.headers.get('ETag');
+      const lastMod = resp.headers.get('Last-Modified');
+      const sha     = eTag || lastMod || 'unknown';
 
-    const buf = await resp.arrayBuffer();
-    setProgress(60);
+      const buf = await resp.arrayBuffer();
+      setProgress(60);
+      updateStatus('parsing');
 
-    const result = await parseExcelInWorker(buf);
-    setProgress(85);
+      const result = await parseExcelInWorker(buf);
+      setProgress(100);
 
-    let finalDateMs = result.modifiedDate || null;
-    if (!finalDateMs && lastMod) {
-      const parsed = new Date(lastMod);
-      if (!isNaN(parsed)) finalDateMs = parsed.getTime();
+      let finalDateMs = result.modifiedDate || null;
+      if (!finalDateMs && lastMod) {
+        const parsed = new Date(lastMod);
+        if (!isNaN(parsed)) finalDateMs = parsed.getTime();
+      }
+      const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
+
+      return { sha, data: result.data, pivotRows: result.pivotRows, sortedDates: result.sortedDates, hasNotFixed: result.hasNotFixed, finalDateMs, updateDateStr };
+    } catch (e) {
+      setProgress(100);
+      throw e;
     }
-    const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
-
-    return { sha, data: result.data, pivotRows: result.pivotRows, sortedDates: result.sortedDates, hasNotFixed: result.hasNotFixed, finalDateMs, updateDateStr };
   }
 
   function applyMetaDate(finalDateMs, updateDateStr) {
@@ -874,7 +884,6 @@
         data = cached.data;
         applyMetaDate(cached.finalDateMs, cached.updateDateStr);
         updateStatus('connected');
-        setProgress(95);
         setProgress(100);
 
         if (cached.pivotRows && cached.sortedDates) {
@@ -893,7 +902,6 @@
         applyMetaDate(fresh.finalDateMs, fresh.updateDateStr);
         updateStatus('connected');
         applyPivotResult(fresh.pivotRows, fresh.sortedDates, fresh.hasNotFixed);
-        setProgress(100);
 
         initialLoadComplete = true;
         finishLoading(tabParam, urlParams);
@@ -944,6 +952,7 @@
       }).catch(e => console.warn('Cache save failed', e));
 
     } catch (e) {
+      setProgress(100);
       console.warn('Background refresh failed:', e);
     }
   }
@@ -968,6 +977,12 @@
     } else if (status === 'loading') {
       b1.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b1.className = 'status-badge';
       b2.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b2.className = 'status-badge';
+    } else if (status === 'downloading') {
+      b1.innerHTML = '<i class="fas fa-cloud-download-alt fa-bounce"></i> 최초 데이터 다운로드...'; b1.className = 'status-badge';
+      b2.innerHTML = '<i class="fas fa-cloud-download-alt fa-bounce"></i> 최초 데이터 다운로드...'; b2.className = 'status-badge';
+    } else if (status === 'parsing') {
+      b1.innerHTML = '<i class="fas fa-cogs fa-spin"></i> 데이터 분석 중...'; b1.className = 'status-badge';
+      b2.innerHTML = '<i class="fas fa-cogs fa-spin"></i> 데이터 분석 중...'; b2.className = 'status-badge';
     } else {
       b1.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b1.className = 'status-badge error';
       b2.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b2.className = 'status-badge error';
@@ -1046,7 +1061,7 @@
       const key       = `${row.itemNo}__${container}__${keyStr}`;
       const qty       = safeNum(row.qty);
       if (grouped.has(key)) grouped.get(key).quantity += qty;
-      // [수정점] plannedDateObj 값을 'confirmed' 인 경우에만 할당하도록 수정
+      // 'confirmed' 타입일 때만 plannedDateObj에 유효한 날짜를 담음.
       else grouped.set(key, { hfb: row.hfb, itemNo: row.itemNo, itemName: row.itemName, ssdRaw: row.ssd, edsRaw: row.eds, plannedDateStr: plan.label, plannedDateObj: plan.type === 'confirmed' ? plan.dateObj : null, quantity: qty, container });
     }
     return Array.from(grouped.values());
@@ -1136,7 +1151,6 @@
     }
   }
 
-  // ── Pivot (캐시 없거나 구버전 캐시일 때 fallback으로만 사용) ──
   function processPivotData(list) {
     const today = new Date(); today.setHours(0,0,0,0);
     const pivotMap = {}; const uniqueDates = new Set(); let hasNotFixed = false;
@@ -1295,78 +1309,9 @@
     requestAnimationFrame(renderChunk);
   }
 
-  // ── 이미지 툴팁 ──
-  document.addEventListener('mousemove', e => {
-    if (tooltipEl.style.display === 'block') {
-      tooltipEl.style.left = `${e.clientX+15}px`;
-      tooltipEl.style.top  = `${e.clientY+15}px`;
-    }
-  });
-
-  function showImageTooltip(e, itemNo, ssd, eds) {
-    if (window.innerWidth <= 768) return;
-    clearTimeout(hoverTimeout); currentHoverItem = itemNo;
-    tooltipEl.style.left = `${e.clientX+15}px`; tooltipEl.style.top = `${e.clientY+15}px`;
-    tooltipEl.style.display = 'block';
-    tooltipEl.querySelector('.img-wrapper').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    hoverTimeout = setTimeout(async () => {
-      if (currentHoverItem !== itemNo) return;
-      const paddedNo = String(itemNo).replace(/[^0-9]/g,'').padStart(8,'0');
-      if (imageCache.has(paddedNo)) { renderTooltipImage(imageCache.get(paddedNo), ssd, eds); return; }
-      try {
-        const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
-        const url = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
-        imageCache.set(paddedNo, url);
-        if (currentHoverItem === itemNo) renderTooltipImage(url, ssd, eds);
-      } catch { renderTooltipImage('ERROR', ssd, eds); }
-    }, 400);
-  }
-
-  function findBestImage(obj) {
-    let best = null;
-    function traverse(o) {
-      if (!o || typeof o !== 'object') return;
-      for (const k in o) {
-        if (typeof o[k] === 'string') {
-          let v = o[k].toLowerCase();
-          if (v.match(/\.(jpg|jpeg|png|webp|avif)(\?.*)?$/) && !v.includes('.svg')) {
-            let url = o[k];
-            if (url.startsWith('//')) url = 'https:'+url;
-            else if (url.startsWith('/')) url = 'https://www.ikea.com'+url;
-            if (!best) best = url;
-            else if (url.includes('s5') || url.includes('main')) best = url;
-          }
-        } else traverse(o[k]);
-      }
-    }
-    traverse(obj); return best;
-  }
-
-  function renderTooltipImage(url, ssd, eds) {
-    const imgHtml = (url === 'NO_IMAGE' || url === 'ERROR')
-      ? `<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>`
-      : `<img src="${url}" alt="Preview" onerror="this.parentElement.innerHTML='<div style=\\'font-weight:bold;color:#e74c3c;\\'>Image N/A</div>'">`;
-    tooltipEl.querySelector('.img-wrapper').innerHTML = imgHtml;
-    tooltipEl.querySelector('.info-wrapper').innerHTML = `<div style="margin-bottom:2px;"><b>SSD :</b> <span style="color:var(--ikea-blue);font-weight:600;">${ssd||'-'}</span></div><div><b>EDS :</b> <span style="color:var(--ikea-blue);font-weight:600;">${eds||'-'}</span></div>`;
-  }
-
-  function hideImageTooltip() { clearTimeout(hoverTimeout); currentHoverItem = null; tooltipEl.style.display = 'none'; }
-
-  function formatItemLink(itemNo, ssdRaw, edsRaw) {
-    const raw     = String(itemNo).trim();
-    const cleanNo = raw.replace(/[^0-9]/g,'');
-    if (cleanNo.length > 0) {
-      const paddedNo = cleanNo.padStart(8,'0');
-      const fSsd = parseExcelDate(ssdRaw); const fEds = parseExcelDate(edsRaw);
-      return `<a href="https://piafacts.ikea.net/kr/en/${paddedNo}" target="_blank" class="item-link" onclick="event.stopPropagation();" onmouseenter="showImageTooltip(event,'${paddedNo}','${fSsd}','${fEds}')" onmouseleave="hideImageTooltip()">${raw}</a>`;
-    }
-    return `<b>${raw}</b>`;
-  }
-
   // ── Export ──
   function exportToXlsx() {
     if (!displayedPivotRows || !displayedPivotRows.length) { alert('No data to export'); return; }
-    /* SheetJS를 동적으로 로드 (처음 필요할 때만) */
     function doExport() {
       const header = ['HFB','PA','Item No','Item Name'];
       if (exportShowNotFixed) header.push('Not Fixed');
@@ -1407,7 +1352,7 @@
       .catch(() => alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
   }
 
-  // ── 바코드 스캐너 (html5-qrcode 지연 로드) ──
+  // ── 바코드 스캐너 ──
   let html5QrcodeScanner = null;
   function loadQrCodeLib(cb) {
     if (typeof Html5Qrcode !== 'undefined') { cb(); return; }
