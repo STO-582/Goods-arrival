@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="STO582 Arrival">
   <link rel="apple-touch-icon" href="./Search.jpg">
@@ -18,7 +19,6 @@
     gtag('config', 'G-3MWM51MSF8');
   </script>
 
-  <!-- CSV Direct Load Version -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -492,1157 +492,1174 @@
   <div id="image-tooltip"><div class="img-wrapper"></div><div class="info-wrapper"></div></div>
 
   <script>
-  const DATA_FILE_URL = './SSS%20ONLY_Goods%20Arrival.csv';
-  const DB_NAME = 'STO582_CacheDB_CSV_v1';
-  const STORE_NAME = 'arrival_data';
-  const CACHE_KEY = 'csvData';
-  const TARGET_CSV_FILENAME = 'FY26 Market Definition.csv';
+    const DATA_FILE_URL = './SSS%20ONLY_Goods%20Arrival.csv';
+    const DB_NAME = 'STO582_CacheDB_CSV_v1';
+    const STORE_NAME = 'arrival_data';
+    const CACHE_KEY = 'csvData';
+    const TARGET_CSV_FILENAME = 'FY26 Market Definition.csv';
 
-  const COL = {
-    ItemNo: 31,
-    ItemName: 32,
-    PA: 30,
-    HFB: 29,
-    SSD: 39,
-    EDS: 40,
-    Qty: 33,
-    Status: 9,
-    Container: 35,
-    ConfirmedDate: 36,
-    ExpectedDate: 14
-  };
+    const COL = {
+      ItemNo: 31,
+      ItemName: 32,
+      PA: 30,
+      HFB: 29,
+      SSD: 39,
+      EDS: 40,
+      Qty: 33,
+      Status: 9,
+      Container: 35,
+      ConfirmedDate: 36,
+      ExpectedDate: 14
+    };
 
-  let data = [];
-  let allPivotRows = [];
-  let displayedPivotRows = [];
-  let globalSortedDates = [];
-  let selectedDateFilters = new Set();
-  let lastRenderedDateColumns = '';
-  let currentSortCol = null;
-  let currentSortAsc = true;
-  let exportVisibleDates = [];
-  let exportShowNotFixed = true;
-  let initialLoadComplete = false;
+    let data = [];
+    let allPivotRows = [];
+    let displayedPivotRows = [];
+    let globalSortedDates = [];
+    let selectedDateFilters = new Set();
+    let lastRenderedDateColumns = '';
+    let currentSortCol = null;
+    let currentSortAsc = true;
+    let exportVisibleDates = [];
+    let exportShowNotFixed = true;
+    let initialLoadComplete = false;
 
-  const imageCache = new Map();
-  let hoverTimeout = null;
-  let currentHoverItem = null;
-  const tooltipEl = document.getElementById('image-tooltip');
+    const imageCache = new Map();
+    let hoverTimeout = null;
+    let currentHoverItem = null;
+    const tooltipEl = document.getElementById('image-tooltip');
 
-  let mdData = [];
-  let isMdLoaded = false;
+    let mdData = [];
+    let isMdLoaded = false;
 
-  function setProgress(pct){
-    const bar = document.getElementById('load-progress-bar');
-    const wrap = document.getElementById('load-progress-bar-wrap');
-    if(!bar || !wrap) return;
-    wrap.style.display = 'block';
-    bar.style.width = pct + '%';
-    if(pct >= 100){
-      setTimeout(()=>{
-        wrap.style.display = 'none';
-        bar.style.width = '0%';
-      },600);
+    function setProgress(pct){
+      const bar = document.getElementById('load-progress-bar');
+      const wrap = document.getElementById('load-progress-bar-wrap');
+      if(!bar || !wrap) return;
+      wrap.style.display = 'block';
+      bar.style.width = pct + '%';
+      if(pct >= 100){
+        setTimeout(()=>{
+          wrap.style.display = 'none';
+          bar.style.width = '0%';
+        },600);
+      }
     }
-  }
 
-  const debounce = (fn,t=300)=>{ let tm; return (...a)=>{ clearTimeout(tm); tm=setTimeout(()=>fn(...a),t); }; };
-  const safeNum = v => Number.isFinite(+v) ? +v : 0;
-  const pad2 = n => String(n).padStart(2,'0');
-  const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    const debounce = (fn,t=300)=>{ let tm; return (...a)=>{ clearTimeout(tm); tm=setTimeout(()=>fn(...a),t); }; };
+    const safeNum = v => Number.isFinite(+v) ? +v : 0;
+    const pad2 = n => String(n).padStart(2,'0');
+    const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 
-  function getWeekNumber(d){
-    const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNr = (target.getUTCDay()+6)%7;
-    target.setUTCDate(target.getUTCDate()-dayNr+3);
-    const firstThu = new Date(Date.UTC(target.getUTCFullYear(),0,4));
-    return 1 + Math.round((target-firstThu)/(7*24*3600*1000));
-  }
+    function getWeekNumber(d){
+      const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNr = (target.getUTCDay()+6)%7;
+      target.setUTCDate(target.getUTCDate()-dayNr+3);
+      const firstThu = new Date(Date.UTC(target.getUTCFullYear(),0,4));
+      return 1 + Math.round((target-firstThu)/(7*24*3600*1000));
+    }
 
-  function excelToDate(v){
-    if(v === null || v === undefined || v === '') return null;
+    function excelToDate(v){
+      if(v === null || v === undefined || v === '') return null;
 
-    if(typeof v === 'number'){
-      if(v > 10000 && v < 60000){
-        const d = new Date(Math.round((v - 25569) * 86400 * 1000) + 43200000);
+      if(typeof v === 'number'){
+        if(v > 10000 && v < 60000){
+          const d = new Date(Math.round((v - 25569) * 86400 * 1000) + 43200000);
+          return isNaN(d) ? null : d;
+        }
+        if(v >= 19000101 && v <= 29991231){
+          const s = String(v);
+          return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
+        }
+      }
+
+      if(typeof v === 'string'){
+        const s = v.trim();
+        if(/^\d{8}$/.test(s)) return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if(m) return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
+        const d = new Date(s);
         return isNaN(d) ? null : d;
       }
-      if(v >= 19000101 && v <= 29991231){
-        const s = String(v);
-        return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
-      }
+
+      if(v instanceof Date) return v;
+      return null;
     }
 
-    if(typeof v === 'string'){
-      const s = v.trim();
-      if(/^\\d{8}$/.test(s)) return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
-
-      const m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
-      if(m){
-        return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
-      }
-
-      const d = new Date(s);
-      return isNaN(d) ? null : d;
+    function parseExcelDate(value){
+      const d = excelToDate(value);
+      return d ? ymd(d) : '-';
     }
 
-    if(v instanceof Date) return v;
-    return null;
-  }
-
-  function parseExcelDate(value){
-    const d = excelToDate(value);
-    return d ? ymd(d) : '-';
-  }
-
-  function openDB(){
-    return new Promise((resolve,reject)=>{
-      const req = indexedDB.open(DB_NAME,1);
-      req.onupgradeneeded = e => {
-        const db = e.target.result;
-        if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-      };
-      req.onsuccess = e => resolve(e.target.result);
-      req.onerror = e => reject(e.target.error);
-    });
-  }
-
-  function saveToCache(key,val){
-    return openDB().then(db => new Promise((res,rej)=>{
-      const tx = db.transaction(STORE_NAME,'readwrite');
-      tx.objectStore(STORE_NAME).put(val,key);
-      tx.oncomplete = ()=>res();
-      tx.onerror = ()=>rej();
-    }));
-  }
-
-  function loadFromCache(key){
-    return openDB().then(db => new Promise((res,rej)=>{
-      const tx = db.transaction(STORE_NAME,'readonly');
-      const req = tx.objectStore(STORE_NAME).get(key);
-      req.onsuccess = ()=>res(req.result);
-      req.onerror = ()=>rej();
-    }));
-  }
-
-  function parseCsvText(text){
-    const parsed = Papa.parse(text, {
-      header: false,
-      skipEmptyLines: true
-    });
-
-    if(parsed.errors && parsed.errors.length){
-      console.warn('CSV parse warnings:', parsed.errors);
-    }
-
-    const rows = parsed.data || [];
-    let startIndex = 1;
-
-    for(let i=0; i<Math.min(20, rows.length); i++){
-      if(!rows[i]) continue;
-      const v = String(rows[i][COL.ItemNo] || '').toLowerCase().replace(/\\s/g,'');
-      if(v.includes('artno') || v.includes('item')){
-        startIndex = i + 1;
-        break;
-      }
-    }
-
-    const out = [];
-    for(let i=startIndex; i<rows.length; i++){
-      const r = rows[i];
-      if(!r) continue;
-
-      const itemNo = String(r[COL.ItemNo] ?? '').trim();
-      if(!itemNo || itemNo.length < 4) continue;
-
-      const lc = itemNo.toLowerCase();
-      if(lc.includes('art') || lc.includes('item')) continue;
-
-      out.push({
-        itemNo,
-        itemName: r[COL.ItemName] ?? '',
-        pa: r[COL.PA] ?? '',
-        hfb: r[COL.HFB] ?? '',
-        ssd: r[COL.SSD] ?? '',
-        eds: r[COL.EDS] ?? '',
-        qty: safeNum(r[COL.Qty]),
-        status: r[COL.Status] ?? '',
-        container: String(r[COL.Container] ?? '').trim(),
-        confirmedDate: r[COL.ConfirmedDate] ?? '',
-        expectedDate: r[COL.ExpectedDate] ?? ''
+    function openDB(){
+      return new Promise((resolve,reject)=>{
+        const req = indexedDB.open(DB_NAME,1);
+        req.onupgradeneeded = e => {
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+        };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
       });
     }
 
-    return out;
-  }
+    function saveToCache(key,val){
+      return openDB().then(db => new Promise((res,rej)=>{
+        const tx = db.transaction(STORE_NAME,'readwrite');
+        tx.objectStore(STORE_NAME).put(val,key);
+        tx.oncomplete = ()=>res();
+        tx.onerror = ()=>rej();
+      }));
+    }
 
-  function buildPivotMain(list){
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    function loadFromCache(key){
+      return openDB().then(db => new Promise((res,rej)=>{
+        const tx = db.transaction(STORE_NAME,'readonly');
+        const req = tx.objectStore(STORE_NAME).get(key);
+        req.onsuccess = ()=>res(req.result);
+        req.onerror = ()=>rej();
+      }));
+    }
 
-    const pivotMap = {};
-    const uniqueDates = new Set();
-    let hasNotFixed = false;
+    function parseCsvText(text){
+      const parsed = Papa.parse(text, {
+        header: false,
+        skipEmptyLines: true
+      });
 
-    for(const row of list){
-      if(!row.itemNo) continue;
-
-      const conf = excelToDate(row.confirmedDate);
-      const qty = safeNum(row.qty);
-
-      if(!pivotMap[row.itemNo]){
-        pivotMap[row.itemNo] = {
-          hfb: row.hfb || '',
-          pa: row.pa || '',
-          itemNo: row.itemNo,
-          itemName: row.itemName || '',
-          ssdRaw: row.ssd || '',
-          edsRaw: row.eds || '',
-          dates: {},
-          notFixedQty: 0
-        };
+      if(parsed.errors && parsed.errors.length){
+        console.warn('CSV parse warnings:', parsed.errors);
       }
 
-      if(conf){
-        const d = new Date(conf);
-        d.setHours(0,0,0,0);
-        if(d < today) continue;
-        const s = ymd(d);
-        pivotMap[row.itemNo].dates[s] = (pivotMap[row.itemNo].dates[s] || 0) + qty;
-        uniqueDates.add(s);
-      } else {
-        pivotMap[row.itemNo].notFixedQty += qty;
-        hasNotFixed = true;
-      }
-    }
+      const rows = parsed.data || [];
+      let startIndex = 1;
 
-    return {
-      pivotRows: Object.values(pivotMap).sort((a,b)=>{
-        if(a.hfb !== b.hfb) return String(a.hfb).localeCompare(String(b.hfb));
-        return String(a.pa).localeCompare(String(b.pa));
-      }),
-      sortedDates: Array.from(uniqueDates).sort(),
-      hasNotFixed
-    };
-  }
-
-  async function fetchAndParse(){
-    setProgress(10);
-    const resp = await fetch(DATA_FILE_URL, { cache:'no-store' });
-    if(!resp.ok) throw new Error('CSV fetch failed: ' + resp.status);
-    setProgress(40);
-
-    const eTag = resp.headers.get('ETag');
-    const lastMod = resp.headers.get('Last-Modified');
-    const sha = eTag || lastMod || 'unknown';
-
-    const text = await resp.text();
-    setProgress(70);
-
-    const parsedRows = parseCsvText(text);
-    const pivot = buildPivotMain(parsedRows);
-
-    let finalDateMs = null;
-    if(lastMod){
-      const parsed = new Date(lastMod);
-      if(!isNaN(parsed)) finalDateMs = parsed.getTime();
-    }
-
-    const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
-    setProgress(90);
-
-    return {
-      sha,
-      data: parsedRows,
-      pivotRows: pivot.pivotRows,
-      sortedDates: pivot.sortedDates,
-      hasNotFixed: pivot.hasNotFixed,
-      finalDateMs,
-      updateDateStr,
-      source: 'csv'
-    };
-  }
-
-  function applyMetaDate(finalDateMs, updateDateStr){
-    document.getElementById('data-update-date').innerText = `data update : ${updateDateStr || '-'}`;
-    document.getElementById('stale-alert').style.display = 'none';
-    if(finalDateMs){
-      const diffHours = (Date.now() - Number(finalDateMs)) / (1000*60*60);
-      if(diffHours > 72){
-        document.getElementById('stale-alert').style.display = 'block';
-      }
-    }
-  }
-
-  function applyPivotResult(pivotRows, sortedDates, hasNotFixed){
-    allPivotRows = pivotRows || [];
-    globalSortedDates = sortedDates || [];
-    renderDateFilterChips(globalSortedDates, !!hasNotFixed);
-    if(document.getElementById('tab-arrival').classList.contains('active')){
-      updateTableDisplay();
-    }
-  }
-
-  function applyDataset(pack){
-    data = pack.data || [];
-    applyMetaDate(pack.finalDateMs, pack.updateDateStr);
-    updateStatus('connected');
-    applyPivotResult(pack.pivotRows, pack.sortedDates, pack.hasNotFixed);
-  }
-
-  window.onload = async function(){
-    try{
-      updateStatus('loading');
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab');
-
-      if(!urlParams.has('hfb')){
-        const saved = localStorage.getItem('last_hfb');
-        if(saved && document.getElementById('pf-hfb')){
-          document.getElementById('pf-hfb').value = saved;
-        }
-      } else {
-        if(document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value = urlParams.get('hfb') || '';
-        if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
-      }
-
-      let cached = null;
-      try { cached = await loadFromCache(CACHE_KEY); } catch(_){}
-
-      if(cached && Array.isArray(cached.data) && cached.data.length > 0){
-        applyDataset(cached);
-        setProgress(100);
-        initialLoadComplete = true;
-        finishLoading(tabParam, urlParams);
-        checkAndRefreshInBackground(cached.sha);
-        return;
-      }
-
-      const fresh = await fetchAndParse();
-      applyDataset(fresh);
-      setProgress(100);
-      initialLoadComplete = true;
-      finishLoading(tabParam, urlParams);
-      saveToCache(CACHE_KEY, fresh).catch(console.warn);
-
-    }catch(err){
-      console.error('Load Error:', err);
-      updateStatus('error');
-      setProgress(100);
-    }
-  };
-
-  async function checkAndRefreshInBackground(cachedSha){
-    try{
-      const head = await fetch(DATA_FILE_URL, { method:'HEAD', cache:'no-store' });
-      if(!head.ok) return;
-
-      const serverSha = head.headers.get('ETag') || head.headers.get('Last-Modified') || 'unknown';
-      if(serverSha === cachedSha) return;
-
-      const fresh = await fetchAndParse();
-      applyDataset(fresh);
-      saveToCache(CACHE_KEY, fresh).catch(console.warn);
-      rerunSearchIfVisible();
-
-    }catch(e){
-      console.warn('Background refresh failed:', e);
-    }
-  }
-
-  function rerunSearchIfVisible(){
-    const currentInput = document.getElementById('itemInput')?.value?.trim();
-    if(document.getElementById('resultSection').style.display === 'block' && currentInput){
-      performSearch(true);
-    }
-  }
-
-  function finishLoading(tabParam, urlParams){
-    if(tabParam === 'arrival') switchTab('arrival');
-    else if(tabParam === 'search'){
-      switchTab('search');
-      if(urlParams.has('itemNo')){
-        document.getElementById('itemInput').value = urlParams.get('itemNo');
-        performSearch();
-      }
-    } else if(tabParam === 'market') {
-      switchTab('market');
-    }
-  }
-
-  function updateStatus(status){
-    const b1 = document.getElementById('statusBadge1');
-    const b2 = document.getElementById('statusBadge2');
-
-    if(status === 'connected'){
-      b1.innerHTML = '<i class="fas fa-check-circle"></i>';
-      b1.className = 'status-badge connected';
-      b2.innerHTML = '<i class="fas fa-check-circle"></i>';
-      b2.className = 'status-badge connected';
-    } else if(status === 'loading'){
-      b1.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
-      b1.className = 'status-badge';
-      b2.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
-      b2.className = 'status-badge';
-    } else {
-      b1.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
-      b1.className = 'status-badge error';
-      b2.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
-      b2.className = 'status-badge error';
-    }
-  }
-
-  function switchTab(tabName){
-    document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
-
-    const nav = document.getElementById('nav-' + tabName);
-    if(nav) nav.classList.add('active');
-
-    const tab = document.getElementById('tab-' + tabName);
-    if(tab) tab.classList.add('active');
-
-    if(tabName === 'arrival'){
-      if(allPivotRows.length > 0) updateTableDisplay();
-      else if(data.length > 0) processPivotData(data);
-    } else if(tabName === 'market'){
-      attemptAutoLoadMarketData();
-    }
-  }
-
-  document.getElementById('itemInput').addEventListener('keypress', e=>{
-    if(e.key === 'Enter') performSearch();
-  });
-
-  function performSearch(isRefreshOnly=false){
-    const raw = document.getElementById('itemInput').value.trim();
-    if(!raw){
-      if(!isRefreshOnly) alert('제품번호를 입력해주세요.');
-      return;
-    }
-
-    localStorage.setItem('last_search_item', raw);
-    const targets = raw.split(/[\\s,]+/).map(t=>t.replace(/[^0-9A-Za-z]/g,'').toLowerCase()).filter(Boolean);
-    if(!targets.length) return;
-
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('resultSection').style.display = 'none';
-
-    setTimeout(()=>{
-      const results = searchData(targets);
-      displayResults(results);
-      document.getElementById('loading').style.display = 'none';
-    },50);
-  }
-
-  function determinePlanned(row){
-    const confDate = excelToDate(row.confirmedDate);
-    const expDate = excelToDate(row.expectedDate);
-
-    if(confDate){
-      const dd = new Date(confDate);
-      dd.setHours(0,0,0,0);
-      return {
-        type:'confirmed',
-        dateObj: dd,
-        confirmedDateObj: dd,
-        label: `<span class="date-badge confirmed">${ymd(dd)}</span>`
-      };
-    }
-
-    if(expDate){
-      const dd = new Date(expDate);
-      dd.setHours(0,0,0,0);
-      return {
-        type:'estimated',
-        dateObj: null,
-        confirmedDateObj: null,
-        estimatedDateObj: dd,
-        label: `<span class="date-badge estimated">WK${getWeekNumber(dd)} 예상</span>`
-      };
-    }
-
-    const statusTxt = row.status ? String(row.status).toUpperCase() : '미정';
-    return {
-      type:'tbd',
-      dateObj:null,
-      confirmedDateObj:null,
-      label:`<span class="date-badge tbd">${statusTxt}</span>`
-    };
-  }
-
-  function searchData(targets){
-    const grouped = new Map();
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    const cleanTargets = targets.map(t=>({
-      raw: t,
-      cleaned: t.replace(/^0+(?=\\d)/,'')
-    }));
-
-    for(let i=0; i<data.length; i++){
-      const row = data[i];
-      const itemNo = String(row.itemNo || '').replace(/\\s+/g,'').toLowerCase();
-      const cleanNo = itemNo.replace(/^0+(?=\\d)/,'');
-      const cont = String(row.container || '').replace(/[^a-zA-Z0-9]/g,'').toLowerCase();
-
-      let isMatch = false;
-      for(let j=0; j<cleanTargets.length; j++){
-        const t = cleanTargets[j];
-        if((cleanNo && cleanNo.includes(t.cleaned)) || (itemNo && itemNo.includes(t.raw)) || (cont && cont.includes(t.raw))){
-          isMatch = true;
+      for(let i=0; i<Math.min(20, rows.length); i++){
+        if(!rows[i]) continue;
+        const v = String(rows[i][COL.ItemNo] || '').toLowerCase().replace(/\s/g,'');
+        if(v.includes('artno') || v.includes('item')){
+          startIndex = i + 1;
           break;
         }
       }
 
-      if(!isMatch) continue;
+      const out = [];
+      for(let i=startIndex; i<rows.length; i++){
+        const r = rows[i];
+        if(!r) continue;
 
-      const plan = determinePlanned(row);
-      if(plan.type === 'confirmed' && plan.confirmedDateObj && plan.confirmedDateObj < today) continue;
+        const itemNo = String(r[COL.ItemNo] ?? '').trim();
+        if(!itemNo || itemNo.length < 4) continue;
 
-      const container = row.container || '배송준비중';
-      const keyStr = plan.type === 'confirmed'
-        ? ymd(plan.confirmedDateObj)
-        : (plan.type === 'estimated' ? `WK_${getWeekNumber(plan.estimatedDateObj)}` : 'TBD');
+        const lc = itemNo.toLowerCase();
+        if(lc.includes('art') || lc.includes('item')) continue;
 
-      const key = `${row.itemNo}__${container}__${keyStr}`;
-      const qty = safeNum(row.qty);
-
-      if(grouped.has(key)){
-        grouped.get(key).quantity += qty;
-      } else {
-        grouped.set(key,{
-          hfb: row.hfb,
-          itemNo: row.itemNo,
-          itemName: row.itemName,
-          ssdRaw: row.ssd,
-          edsRaw: row.eds,
-          plannedDateStr: plan.label,
-          plannedDateObj: plan.confirmedDateObj || null,
-          planType: plan.type,
-          quantity: qty,
-          container
+        out.push({
+          itemNo,
+          itemName: r[COL.ItemName] ?? '',
+          pa: r[COL.PA] ?? '',
+          hfb: r[COL.HFB] ?? '',
+          ssd: r[COL.SSD] ?? '',
+          eds: r[COL.EDS] ?? '',
+          qty: safeNum(r[COL.Qty]),
+          status: r[COL.Status] ?? '',
+          container: String(r[COL.Container] ?? '').trim(),
+          confirmedDate: r[COL.ConfirmedDate] ?? '',
+          expectedDate: r[COL.ExpectedDate] ?? ''
         });
       }
+
+      return out;
     }
 
-    return Array.from(grouped.values());
-  }
+    function buildPivotMain(list){
+      const today = new Date();
+      today.setHours(0,0,0,0);
 
-  function displayResults(results){
-    const resultSection = document.getElementById('resultSection');
-    const statusBar = document.getElementById('statusBar');
-    const pcTbody = document.getElementById('pcResultBody');
-    const mobileScheduleList = document.getElementById('mobileScheduleList');
+      const pivotMap = {};
+      const uniqueDates = new Set();
+      let hasNotFixed = false;
 
-    resultSection.style.display = 'block';
-    pcTbody.innerHTML = '';
-    mobileScheduleList.innerHTML = '';
+      for(const row of list){
+        if(!row.itemNo) continue;
 
-    if(!results.length){
-      statusBar.innerHTML = '검색 결과가 없습니다.<br><span style="font-size:.8em;font-weight:normal;">No results found.</span>';
-      statusBar.className = 'status-msg status-fail';
-      statusBar.style.display = 'block';
-      document.querySelector('.dashboard').style.display = 'none';
-      return;
-    }
+        const conf = excelToDate(row.confirmedDate);
+        const qty = safeNum(row.qty);
 
-    statusBar.innerHTML = `${results.length}개의 배송 계획을 찾았습니다!<br><span style="font-size:.75em;font-weight:normal;opacity:.9;">Found ${results.length} arrival plans!</span>`;
-    statusBar.className = 'status-msg status-success';
-    statusBar.style.display = 'block';
-    document.querySelector('.dashboard').style.display = 'flex';
-    document.getElementById('totalResults').innerText = results.length;
-
-    results.sort((a,b)=>{
-      if(a.itemNo !== b.itemNo) return a.itemNo.localeCompare(b.itemNo);
-      return (a.plannedDateObj || new Date(9999,0,1)) - (b.plannedDateObj || new Date(9999,0,1));
-    });
-
-    const confirmedFuture = results.filter(r=>r.planType === 'confirmed' && r.plannedDateObj !== null);
-    if(confirmedFuture.length){
-      const nextDateObj = confirmedFuture.reduce((min,p)=>p.plannedDateObj < min ? p.plannedDateObj : min, confirmedFuture[0].plannedDateObj);
-      const nextDateStr = ymd(nextDateObj);
-      document.getElementById('futureDeliveryQty').innerText = confirmedFuture
-        .filter(r=>ymd(r.plannedDateObj) === nextDateStr)
-        .reduce((s,i)=>s+i.quantity,0);
-      document.getElementById('nextDeliveryDate').innerText = nextDateStr;
-    } else {
-      document.getElementById('futureDeliveryQty').innerText = '0';
-      document.getElementById('nextDeliveryDate').innerText = '-';
-    }
-
-    let pcHtml = '';
-    results.forEach(row=>{
-      pcHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo,row.ssdRaw,row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
-    });
-    requestAnimationFrame(()=>{ pcTbody.innerHTML = pcHtml; });
-
-    const grouped = {};
-    results.forEach(r=>{
-      if(!grouped[r.itemNo]) grouped[r.itemNo] = { info:r, schedules:[] };
-      grouped[r.itemNo].schedules.push(r);
-    });
-
-    let mobileHtml = '';
-    for(const itemNo in grouped){
-      const g = grouped[itemNo];
-      const i = g.info;
-      const safeId = String(i.itemNo).replace(/[^a-zA-Z0-9]/g,'');
-
-      mobileHtml += `<div class="product-summary-card">
-        <div id="mobile-img-${safeId}" style="display:none;text-align:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed #eee;"></div>
-        <div class="summary-row"><span style="color:#555;font-weight:bold;">Item No</span><span style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${i.itemNo}</span></div>
-        <div class="summary-row" style="flex-direction:column;align-items:flex-start;"><span style="color:#555;font-weight:bold;margin-bottom:4px;">Name</span><span style="color:#333;font-size:.9rem;word-break:keep-all;">${i.itemName}</span></div>
-        <div class="summary-row"><span style="color:#555;font-weight:bold;">HFB</span><span>${i.hfb}</span></div>
-        <div class="summary-row"><span style="color:#555;font-weight:bold;">SSD</span><span>${parseExcelDate(i.ssdRaw)}</span></div>
-        <div class="summary-row" style="border:none;padding-bottom:0;margin-bottom:0;"><span style="color:#555;font-weight:bold;">EDS</span><span>${parseExcelDate(i.edsRaw)}</span></div>
-      </div>`;
-
-      g.schedules.forEach(sc=>{
-        mobileHtml += `<div class="schedule-item"><div>${sc.plannedDateStr}</div><div style="text-align:right;"><div style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${sc.quantity} ea</div><div style="color:#888;font-size:.8rem;margin-top:2px;"><i class="fas fa-box"></i> ${sc.container}</div></div></div>`;
-      });
-    }
-
-    requestAnimationFrame(()=>{ mobileScheduleList.innerHTML = mobileHtml; });
-    fetchAndDisplaySearchImages([...new Set(results.map(r=>r.itemNo))]);
-  }
-
-  async function fetchAndDisplaySearchImages(itemNos){
-    const dashImageCard = document.getElementById('dashImageCard');
-    if(dashImageCard){
-      dashImageCard.style.display = 'none';
-      dashImageCard.innerHTML = '';
-    }
-
-    let isFirst = false;
-    let fetchCount = 0;
-
-    for(const itemNo of itemNos){
-      const safeId = String(itemNo).replace(/[^a-zA-Z0-9]/g,'');
-      const cleanNo = String(itemNo).replace(/[^0-9]/g,'');
-      if(!cleanNo.length) continue;
-      const paddedNo = cleanNo.padStart(8,'0');
-
-      let imgUrl = imageCache.get(paddedNo);
-      if(!imgUrl && fetchCount < 5){
-        fetchCount++;
-        try{
-          const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
-          imgUrl = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
-          imageCache.set(paddedNo, imgUrl);
-        }catch{
-          imgUrl = 'NO_IMAGE';
-          imageCache.set(paddedNo, imgUrl);
+        if(!pivotMap[row.itemNo]){
+          pivotMap[row.itemNo] = {
+            hfb: row.hfb || '',
+            pa: row.pa || '',
+            itemNo: row.itemNo,
+            itemName: row.itemName || '',
+            ssdRaw: row.ssd || '',
+            edsRaw: row.eds || '',
+            dates: {},
+            notFixedQty: 0
+          };
         }
-      }
 
-      if(imgUrl && imgUrl !== 'NO_IMAGE'){
-        const mob = document.getElementById(`mobile-img-${safeId}`);
-        if(mob){
-          mob.innerHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8pxrHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:80px;object-fit:contain = true;
-        }
-      }
-    }
-  }
-
-  function processPivotData(list){
-    const pivot = buildPivotMain(list);
-    allPivotRows = pivot.pivotRows;
-    globalSortedDates = pivot.sortedDates;
-    renderDateFilterChips(globalSortedDates, pivot.hasNotFixed);
-    updateTableDisplay();
-  }
-
-  function renderDateFilterChips(dates, hasNotFixed){
-    const container = document.getElementById('dateFilterChips');
-    container.innerHTML = '';
-
-    const createChip = (val,label)=>{
-      const div = document.createElement('div');
-      div.className = 'filter-chip';
-      if(selectedDateFilters.has(val)) div.classList.add('active');
-      div.innerHTML = `<i class="fas fa-calendar-check"></i> ${label}`;
-      div.onclick = ()=>{
-        if(selectedDateFilters.has(val)){
-          selectedDateFilters.delete(val);
-          div.classList.remove('active');
+        if(conf){
+          const d = new Date(conf);
+          d.setHours(0,0,0,0);
+          if(d < today) continue;
+          const s = ymd(d);
+          pivotMap[row.itemNo].dates[s] = (pivotMap[row.itemNo].dates[s] || 0) + qty;
+          uniqueDates.add(s);
         } else {
-          selectedDateFilters.add(val);
-          div.classList.add('active');
+          pivotMap[row.itemNo].notFixedQty += qty;
+          hasNotFixed = true;
         }
-        filterPivot();
+      }
+
+      return {
+        pivotRows: Object.values(pivotMap).sort((a,b)=>{
+          if(a.hfb !== b.hfb) return String(a.hfb).localeCompare(String(b.hfb));
+          return String(a.pa).localeCompare(String(b.pa));
+        }),
+        sortedDates: Array.from(uniqueDates).sort(),
+        hasNotFixed
       };
-      return div;
+    }
+
+    async function fetchAndParse(){
+      setProgress(10);
+      const resp = await fetch(DATA_FILE_URL, { cache:'no-store' });
+      if(!resp.ok) throw new Error('CSV fetch failed: ' + resp.status);
+      setProgress(40);
+
+      const eTag = resp.headers.get('ETag');
+      const lastMod = resp.headers.get('Last-Modified');
+      const sha = eTag || lastMod || 'unknown';
+
+      const text = await resp.text();
+      setProgress(70);
+
+      const parsedRows = parseCsvText(text);
+      const pivot = buildPivotMain(parsedRows);
+
+      let finalDateMs = null;
+      if(lastMod){
+        const parsed = new Date(lastMod);
+        if(!isNaN(parsed)) finalDateMs = parsed.getTime();
+      }
+
+      const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
+      setProgress(90);
+
+      return {
+        sha,
+        data: parsedRows,
+        pivotRows: pivot.pivotRows,
+        sortedDates: pivot.sortedDates,
+        hasNotFixed: pivot.hasNotFixed,
+        finalDateMs,
+        updateDateStr,
+        source: 'csv'
+      };
+    }
+
+    function applyMetaDate(finalDateMs, updateDateStr){
+      document.getElementById('data-update-date').innerText = `data update : ${updateDateStr || '-'}`;
+      document.getElementById('stale-alert').style.display = 'none';
+      if(finalDateMs){
+        const diffHours = (Date.now() - Number(finalDateMs)) / (1000*60*60);
+        if(diffHours > 72){
+          document.getElementById('stale-alert').style.display = 'block';
+        }
+      }
+    }
+
+    function applyPivotResult(pivotRows, sortedDates, hasNotFixed){
+      allPivotRows = pivotRows || [];
+      globalSortedDates = sortedDates || [];
+      renderDateFilterChips(globalSortedDates, !!hasNotFixed);
+      if(document.getElementById('tab-arrival').classList.contains('active')){
+        updateTableDisplay();
+      }
+    }
+
+    function applyDataset(pack){
+      data = pack.data || [];
+      applyMetaDate(pack.finalDateMs, pack.updateDateStr);
+      updateStatus('connected');
+      applyPivotResult(pack.pivotRows, pack.sortedDates, pack.hasNotFixed);
+    }
+
+    window.onload = async function(){
+      try{
+        updateStatus('loading');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+
+        if(!urlParams.has('hfb')){
+          const saved = localStorage.getItem('last_hfb');
+          if(saved && document.getElementById('pf-hfb')){
+            document.getElementById('pf-hfb').value = saved;
+          }
+        } else {
+          if(document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value = urlParams.get('hfb') || '';
+          if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
+        }
+
+        let cached = null;
+        try { cached = await loadFromCache(CACHE_KEY); } catch(_){ }
+
+        if(cached && Array.isArray(cached.data) && cached.data.length > 0){
+          applyDataset(cached);
+          setProgress(100);
+          initialLoadComplete = true;
+          finishLoading(tabParam, urlParams);
+          checkAndRefreshInBackground(cached.sha);
+          return;
+        }
+
+        const fresh = await fetchAndParse();
+        applyDataset(fresh);
+        setProgress(100);
+        initialLoadComplete = true;
+        finishLoading(tabParam, urlParams);
+        saveToCache(CACHE_KEY, fresh).catch(console.warn);
+
+      }catch(err){
+        console.error('Load Error:', err);
+        updateStatus('error');
+        setProgress(100);
+      }
     };
 
-    if(hasNotFixed) container.appendChild(createChip('Not Fixed','Not Fixed (미정/예상)'));
-    dates.forEach(d=>container.appendChild(createChip(d,d)));
-  }
+    async function checkAndRefreshInBackground(cachedSha){
+      try{
+        const head = await fetch(DATA_FILE_URL, { method:'HEAD', cache:'no-store' });
+        if(!head.ok) return;
 
-  function clearDateFilters(){
-    selectedDateFilters.clear();
-    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
-    filterPivot();
-  }
+        const serverSha = head.headers.get('ETag') || head.headers.get('Last-Modified') || 'unknown';
+        if(serverSha === cachedSha) return;
 
-  const debounceFilter = debounce(()=>{
-    const hfb = document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value;
-    if(hfb) localStorage.setItem('last_hfb', hfb);
-    filterPivot();
-  },400);
+        const fresh = await fetchAndParse();
+        applyDataset(fresh);
+        saveToCache(CACHE_KEY, fresh).catch(console.warn);
+        rerunSearchIfVisible();
 
-  function filterPivot(){ updateTableDisplay(); }
-
-  function sortTable(col){
-    currentSortAsc = (currentSortCol === col) ? !currentSortAsc : true;
-    currentSortCol = col;
-    updateTableDisplay();
-  }
-
-  function getSortIcon(col){
-    if(currentSortCol !== col) return '<i class="fas fa-sort sort-icon"></i>';
-    return currentSortAsc ? '<i class="fas fa-sort-up sort-icon active"></i>' : '<i class="fas fa-sort-down sort-icon active"></i>';
-  }
-
-  function updateTableDisplay(){
-    const isMobile = window.innerWidth <= 768;
-    const pfHfb = document.getElementById('pf-hfb').value.trim().toUpperCase();
-    const pfPa = document.getElementById('pf-pa').value.trim().toUpperCase();
-    const headerHfb = (document.getElementById('hfb-filter')?.value || '').trim().toUpperCase();
-    const headerPa = (document.getElementById('pa-filter')?.value || '').trim().toUpperCase();
-    const hfbVal = isMobile ? pfHfb : headerHfb;
-    const paVal = isMobile ? pfPa : headerPa;
-    const hasDateFilter = selectedDateFilters.size > 0;
-
-    if(isMobile){
-      const isEmpty = !hfbVal && !paVal && !hasDateFilter;
-      document.getElementById('pivotEmptyState').style.display = isEmpty ? 'block' : 'none';
-      document.getElementById('pivotTable').style.display = isEmpty ? 'none' : 'table';
-      if(isEmpty) return;
-    } else {
-      document.getElementById('pivotEmptyState').style.display = 'none';
-      document.getElementById('pivotTable').style.display = 'table';
-    }
-
-    const visibleDates = hasDateFilter ? globalSortedDates.filter(d=>selectedDateFilters.has(d)) : [...globalSortedDates];
-    const showNotFixed = !hasDateFilter || selectedDateFilters.has('Not Fixed');
-    exportVisibleDates = visibleDates;
-    exportShowNotFixed = showNotFixed;
-    const sig = visibleDates.join('|') + (showNotFixed ? '|NF' : '') + (isMobile ? '|M' : '|P') + `|Sort:${currentSortCol}:${currentSortAsc}`;
-
-    if(sig !== lastRenderedDateColumns){
-      let theadHtml = `<tr>
-        <th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-        <th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-        <th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-        <th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>`;
-
-      if(showNotFixed){
-        theadHtml += `<th class="not-fixed-col" onclick="sortTable('Not Fixed')">미정/예상<br>(Not Fixed) ${getSortIcon('Not Fixed')}</th>`;
-      }
-
-      visibleDates.forEach(d=>{
-        theadHtml += `<th class="date-col" onclick="sortTable('${d}')">${d} ${getSortIcon(d)}</th>`;
-      });
-
-      theadHtml += '</tr>';
-      document.getElementById('pivotHead').innerHTML = theadHtml;
-      lastRenderedDateColumns = sig;
-
-      if(!isMobile){
-        if(document.getElementById('hfb-filter')) document.getElementById('hfb-filter').value = hfbVal;
-        if(document.getElementById('pa-filter')) document.getElementById('pa-filter').value = paVal;
+      }catch(e){
+        console.warn('Background refresh failed:', e);
       }
     }
 
-    const itemNoVal = (document.querySelector('input[data-field="itemNo"]')?.value || '').trim().toUpperCase();
-    const itemNameVal = (document.querySelector('input[data-field="itemName"]')?.value || '').trim().toUpperCase();
+    function rerunSearchIfVisible(){
+      const currentInput = document.getElementById('itemInput')?.value?.trim();
+      if(document.getElementById('resultSection').style.display === 'block' && currentInput){
+        performSearch(true);
+      }
+    }
 
-    const filteredRows = allPivotRows.filter(row=>{
-      if(hfbVal && String(row.hfb).toUpperCase() !== hfbVal) return false;
-      if(paVal && String(row.pa).toUpperCase() !== paVal) return false;
-      if(itemNoVal && String(row.itemNo).toUpperCase().indexOf(itemNoVal) === -1) return false;
-      if(itemNameVal && String(row.itemName).toUpperCase().indexOf(itemNameVal) === -1) return false;
-
-      if(hasDateFilter){
-        let hit = selectedDateFilters.has('Not Fixed') && row.notFixedQty > 0;
-        if(!hit){
-          for(const k of selectedDateFilters){
-            if(k !== 'Not Fixed' && row.dates[k] > 0){
-              hit = true;
-              break;
-            }
-          }
+    function finishLoading(tabParam, urlParams){
+      if(tabParam === 'arrival') switchTab('arrival');
+      else if(tabParam === 'search'){
+        switchTab('search');
+        if(urlParams.has('itemNo')){
+          document.getElementById('itemInput').value = urlParams.get('itemNo');
+          performSearch();
         }
-        if(!hit) return false;
+      } else if(tabParam === 'market') {
+        switchTab('market');
       }
-      return true;
+    }
+
+    function updateStatus(status){
+      const b1 = document.getElementById('statusBadge1');
+      const b2 = document.getElementById('statusBadge2');
+
+      if(status === 'connected'){
+        b1.innerHTML = '<i class="fas fa-check-circle"></i>';
+        b1.className = 'status-badge connected';
+        b2.innerHTML = '<i class="fas fa-check-circle"></i>';
+        b2.className = 'status-badge connected';
+      } else if(status === 'loading'){
+        b1.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
+        b1.className = 'status-badge';
+        b2.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
+        b2.className = 'status-badge';
+      } else {
+        b1.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
+        b1.className = 'status-badge error';
+        b2.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
+        b2.className = 'status-badge error';
+      }
+    }
+
+    function switchTab(tabName){
+      document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+
+      const nav = document.getElementById('nav-' + tabName);
+      if(nav) nav.classList.add('active');
+
+      const tab = document.getElementById('tab-' + tabName);
+      if(tab) tab.classList.add('active');
+
+      if(tabName === 'arrival'){
+        if(allPivotRows.length > 0) updateTableDisplay();
+        else if(data.length > 0) processPivotData(data);
+      } else if(tabName === 'market'){
+        attemptAutoLoadMarketData();
+      }
+    }
+
+    document.getElementById('itemInput').addEventListener('keypress', e=>{
+      if(e.key === 'Enter') performSearch();
     });
 
-    if(currentSortCol){
-      filteredRows.sort((a,b)=>{
-        let vA, vB;
-        if(currentSortCol === 'itemNo'){ vA = String(a.itemNo); vB = String(b.itemNo); }
-        else if(currentSortCol === 'itemName'){ vA = String(a.itemName); vB = String(b.itemName); }
-        else if(currentSortCol === 'hfb'){ vA = String(a.hfb); vB = String(b.hfb); }
-        else if(currentSortCol === 'pa'){ vA = String(a.pa); vB = String(b.pa); }
-        else if(currentSortCol === 'Not Fixed'){ vA = a.notFixedQty || 0; vB = b.notFixedQty || 0; }
-        else { vA = a.dates[currentSortCol] || 0; vB = b.dates[currentSortCol] || 0; }
-
-        const nA = parseFloat(vA), nB = parseFloat(vB);
-        if(!isNaN(nA) && !isNaN(nB)) return currentSortAsc ? nA - nB : nB - nA;
-        if(vA < vB) return currentSortAsc ? -1 : 1;
-        if(vA > vB) return currentSortAsc ? 1 : -1;
-        return 0;
-      });
-    }
-
-    displayedPivotRows = filteredRows;
-
-    const tbody = document.getElementById('pivotBody');
-    tbody.innerHTML = '';
-
-    if(!filteredRows.length){
-      tbody.innerHTML = `<tr><td colspan="20" style="padding:50px;text-align:center;color:#888;font-size:1.1rem;background:#fff;"><i class="fas fa-box-open" style="font-size:2rem;color:#ccc;margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:.85rem;color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
-      return;
-    }
-
-    let idx = 0;
-    const CHUNK = 100;
-    const MAX = Math.min(filteredRows.length, 3000);
-
-    function renderChunk(){
-      let html = '';
-      const end = Math.min(idx + CHUNK, MAX);
-      for(; idx < end; idx++){
-        const r = filteredRows[idx];
-        const nf = (showNotFixed && r.notFixedQty > 0) ? r.notFixedQty : '';
-        html += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo,r.ssdRaw,r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`;
-        if(showNotFixed) html += `<td class="not-fixed-col">${nf}</td>`;
-        visibleDates.forEach(d=>{ html += `<td class="qty-cell">${r.dates[d] || ''}</td>`; });
-        html += '</tr>';
-      }
-      tbody.insertAdjacentHTML('beforeend', html);
-      if(idx < MAX) requestAnimationFrame(renderChunk);
-    }
-    requestAnimationFrame(renderChunk);
-  }
-
-  document.addEventListener('mousemove', e=>{
-    if(tooltipEl.style.display === 'block'){
-      tooltipEl.style.left = `${e.clientX+15}px`;
-      tooltipEl.style.top = `${e.clientY+15}px`;
-    }
-  });
-
-  function showImageTooltip(e,itemNo,ssd,eds){
-    if(window.innerWidth <= 768) return;
-    clearTimeout(hoverTimeout);
-    currentHoverItem = itemNo;
-    tooltipEl.style.left = `${e.clientX+15}px`;
-    tooltipEl.style.top = `${e.clientY+15}px`;
-    tooltipEl.style.display = 'block';
-    tooltipEl.querySelector('.img-wrapper').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    hoverTimeout = setTimeout(async ()=>{
-      if(currentHoverItem !== itemNo) return;
-      const paddedNo = String(itemNo).replace(/[^0-9]/g,'').padStart(8,'0');
-      if(imageCache.has(paddedNo)){
-        renderTooltipImage(imageCache.get(paddedNo),ssd,eds);
+    function performSearch(isRefreshOnly=false){
+      const raw = document.getElementById('itemInput').value.trim();
+      if(!raw){
+        if(!isRefreshOnly) alert('제품번호를 입력해주세요.');
         return;
       }
-      try{
-        const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
-        const url = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
-        imageCache.set(paddedNo, url);
-        if(currentHoverItem === itemNo) renderTooltipImage(url,ssd,eds);
-      }catch{
-        renderTooltipImage('ERROR',ssd,eds);
-      }
-    },400);
-  }
 
-  function findBestImage(obj){
-    let best = null;
-    function traverse(o){
-      if(!o || typeof o !== 'object') return;
-      for(const k in o){
-        if(typeof o[k] === 'string'){
-          let v = o[k].toLowerCase();
-          if(v.match(/\\.(jpg|jpeg|png|webp|avif)(\\?.*)?$/) && !v.includes('.svg')){
-            let url = o[k];
-            if(url.startsWith('//')) url = 'https:' + url;
-            else if(url.startsWith('/')) url = 'https://www.ikea.com' + url;
-            if(!best) best = url;
-            else if(url.includes('s5') || url.includes('main')) best = url;
+      localStorage.setItem('last_search_item', raw);
+      const targets = raw.split(/[\s,]+/).map(t=>t.replace(/[^0-9A-Za-z]/g,'').toLowerCase()).filter(Boolean);
+      if(!targets.length) return;
+
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('resultSection').style.display = 'none';
+
+      setTimeout(()=>{
+        const results = searchData(targets);
+        displayResults(results);
+        document.getElementById('loading').style.display = 'none';
+      },50);
+    }
+
+    function determinePlanned(row){
+      const confDate = excelToDate(row.confirmedDate);
+      const expDate = excelToDate(row.expectedDate);
+
+      if(confDate){
+        const dd = new Date(confDate);
+        dd.setHours(0,0,0,0);
+        return {
+          type:'confirmed',
+          dateObj: dd,
+          confirmedDateObj: dd,
+          label: `<span class="date-badge confirmed">${ymd(dd)}</span>`
+        };
+      }
+
+      if(expDate){
+        const dd = new Date(expDate);
+        dd.setHours(0,0,0,0);
+        return {
+          type:'estimated',
+          dateObj: null,
+          confirmedDateObj: null,
+          estimatedDateObj: dd,
+          label: `<span class="date-badge estimated">WK${getWeekNumber(dd)} 예상</span>`
+        };
+      }
+
+      const statusTxt = row.status ? String(row.status).toUpperCase() : '미정';
+      return {
+        type:'tbd',
+        dateObj:null,
+        confirmedDateObj:null,
+        label:`<span class="date-badge tbd">${statusTxt}</span>`
+      };
+    }
+
+    function searchData(targets){
+      const grouped = new Map();
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      const cleanTargets = targets.map(t=>({
+        raw: t,
+        cleaned: t.replace(/^0+(?=\d)/,'')
+      }));
+
+      for(let i=0; i<data.length; i++){
+        const row = data[i];
+        const itemNo = String(row.itemNo || '').replace(/\s+/g,'').toLowerCase();
+        const cleanNo = itemNo.replace(/^0+(?=\d)/,'');
+        const cont = String(row.container || '').replace(/[^a-zA-Z0-9]/g,'').toLowerCase();
+
+        let isMatch = false;
+        for(let j=0; j<cleanTargets.length; j++){
+          const t = cleanTargets[j];
+          if((cleanNo && cleanNo.includes(t.cleaned)) || (itemNo && itemNo.includes(t.raw)) || (cont && cont.includes(t.raw))){
+            isMatch = true;
+            break;
           }
+        }
+
+        if(!isMatch) continue;
+
+        const plan = determinePlanned(row);
+        if(plan.type === 'confirmed' && plan.confirmedDateObj && plan.confirmedDateObj < today) continue;
+
+        const container = row.container || '배송준비중';
+        const keyStr = plan.type === 'confirmed'
+          ? ymd(plan.confirmedDateObj)
+          : (plan.type === 'estimated' ? `WK_${getWeekNumber(plan.estimatedDateObj)}` : 'TBD');
+
+        const key = `${row.itemNo}__${container}__${keyStr}`;
+        const qty = safeNum(row.qty);
+
+        if(grouped.has(key)){
+          grouped.get(key).quantity += qty;
         } else {
-          traverse(o[k]);
+          grouped.set(key,{
+            hfb: row.hfb,
+            itemNo: row.itemNo,
+            itemName: row.itemName,
+            ssdRaw: row.ssd,
+            edsRaw: row.eds,
+            plannedDateStr: plan.label,
+            plannedDateObj: plan.confirmedDateObj || null,
+            planType: plan.type,
+            quantity: qty,
+            container
+          });
+        }
+      }
+
+      return Array.from(grouped.values());
+    }
+
+    function displayResults(results){
+      const resultSection = document.getElementById('resultSection');
+      const statusBar = document.getElementById('statusBar');
+      const pcTbody = document.getElementById('pcResultBody');
+      const mobileScheduleList = document.getElementById('mobileScheduleList');
+
+      resultSection.style.display = 'block';
+      pcTbody.innerHTML = '';
+      mobileScheduleList.innerHTML = '';
+
+      if(!results.length){
+        statusBar.innerHTML = '검색 결과가 없습니다.<br><span style="font-size:.8em;font-weight:normal;">No results found.</span>';
+        statusBar.className = 'status-msg status-fail';
+        statusBar.style.display = 'block';
+        document.querySelector('.dashboard').style.display = 'none';
+        return;
+      }
+
+      statusBar.innerHTML = `${results.length}개의 배송 계획을 찾았습니다!<br><span style="font-size:.75em;font-weight:normal;opacity:.9;">Found ${results.length} arrival plans!</span>`;
+      statusBar.className = 'status-msg status-success';
+      statusBar.style.display = 'block';
+      document.querySelector('.dashboard').style.display = 'flex';
+      document.getElementById('totalResults').innerText = results.length;
+
+      results.sort((a,b)=>{
+        if(a.itemNo !== b.itemNo) return a.itemNo.localeCompare(b.itemNo);
+        return (a.plannedDateObj || new Date(9999,0,1)) - (b.plannedDateObj || new Date(9999,0,1));
+      });
+
+      const confirmedFuture = results.filter(r=>r.planType === 'confirmed' && r.plannedDateObj !== null);
+      if(confirmedFuture.length){
+        const nextDateObj = confirmedFuture.reduce((min,p)=>p.plannedDateObj < min ? p.plannedDateObj : min, confirmedFuture[0].plannedDateObj);
+        const nextDateStr = ymd(nextDateObj);
+        document.getElementById('futureDeliveryQty').innerText = confirmedFuture
+          .filter(r=>ymd(r.plannedDateObj) === nextDateStr)
+          .reduce((s,i)=>s+i.quantity,0);
+        document.getElementById('nextDeliveryDate').innerText = nextDateStr;
+      } else {
+        document.getElementById('futureDeliveryQty').innerText = '0';
+        document.getElementById('nextDeliveryDate').innerText = '-';
+      }
+
+      let pcHtml = '';
+      results.forEach(row=>{
+        pcHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo,row.ssdRaw,row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
+      });
+      requestAnimationFrame(()=>{ pcTbody.innerHTML = pcHtml; });
+
+      const grouped = {};
+      results.forEach(r=>{
+        if(!grouped[r.itemNo]) grouped[r.itemNo] = { info:r, schedules:[] };
+        grouped[r.itemNo].schedules.push(r);
+      });
+
+      let mobileHtml = '';
+      for(const itemNo in grouped){
+        const g = grouped[itemNo];
+        const i = g.info;
+        const safeId = String(i.itemNo).replace(/[^a-zA-Z0-9]/g,'');
+
+        mobileHtml += `<div class="product-summary-card">
+          <div id="mobile-img-${safeId}" style="display:none;text-align:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed #eee;"></div>
+          <div class="summary-row"><span style="color:#555;font-weight:bold;">Item No</span><span style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${i.itemNo}</span></div>
+          <div class="summary-row" style="flex-direction:column;align-items:flex-start;"><span style="color:#555;font-weight:bold;margin-bottom:4px;">Name</span><span style="color:#333;font-size:.9rem;word-break:keep-all;">${i.itemName}</span></div>
+          <div class="summary-row"><span style="color:#555;font-weight:bold;">HFB</span><span>${i.hfb}</span></div>
+          <div class="summary-row"><span style="color:#555;font-weight:bold;">SSD</span><span>${parseExcelDate(i.ssdRaw)}</span></div>
+          <div class="summary-row" style="border:none;padding-bottom:0;margin-bottom:0;"><span style="color:#555;font-weight:bold;">EDS</span><span>${parseExcelDate(i.edsRaw)}</span></div>
+        </div>`;
+
+        g.schedules.forEach(sc=>{
+          mobileHtml += `<div class="schedule-item"><div>${sc.plannedDateStr}</div><div style="text-align:right;"><div style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${sc.quantity} ea</div><div style="color:#888;font-size:.8rem;margin-top:2px;"><i class="fas fa-box"></i> ${sc.container}</div></div></div>`;
+        });
+      }
+
+      requestAnimationFrame(()=>{ mobileScheduleList.innerHTML = mobileHtml; });
+      fetchAndDisplaySearchImages([...new Set(results.map(r=>r.itemNo))]);
+    }
+
+    async function fetchAndDisplaySearchImages(itemNos){
+      const dashImageCard = document.getElementById('dashImageCard');
+      if(dashImageCard){
+        dashImageCard.style.display = 'none';
+        dashImageCard.innerHTML = '';
+      }
+
+      let isFirst = false;
+      let fetchCount = 0;
+
+      for(const itemNo of itemNos){
+        const safeId = String(itemNo).replace(/[^a-zA-Z0-9]/g,'');
+        const cleanNo = String(itemNo).replace(/[^0-9]/g,'');
+        if(!cleanNo.length) continue;
+        const paddedNo = cleanNo.padStart(8,'0');
+
+        let imgUrl = imageCache.get(paddedNo);
+        if(!imgUrl && fetchCount < 5){
+          fetchCount++;
+          try{
+            const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
+            imgUrl = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
+            imageCache.set(paddedNo, imgUrl);
+          }catch{
+            imgUrl = 'NO_IMAGE';
+            imageCache.set(paddedNo, imgUrl);
+          }
+        }
+
+        if(imgUrl && imgUrl !== 'NO_IMAGE'){
+          const mob = document.getElementById(`mobile-img-${safeId}`);
+          if(mob){
+            mob.innerHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8px;">`;
+            mob.style.display = 'block';
+          }
+          if(!isFirst && dashImageCard){
+            dashImageCard.innerHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:80px;object-fit:contain;">`;
+            dashImageCard.style.display = 'flex';
+            isFirst = true;
+          }
         }
       }
     }
-    traverse(obj);
-    return best;
-  }
 
-  function renderTooltipImage(url,ssd,eds){
-    const imgHtml = (url === 'NO_IMAGE' || url === 'ERROR')
-      ? `<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>`
-      : `<img src="${url}" alt="Preview" onerror="this.parentElement.innerHTML='<div style=\\'font-weight:bold;color:#e74c3c;\\or('.info-wrapper').innerHTML = `<div style="margin-bottom:2px;"><b>SSD :</b> <span style="color:var(--ikea-blue);font-weight:600;">${ssd || '-'}</span></div><div><b>EDS :</b> <span style="color:var(--ikea-blue);font-weight:600;">${eds || '-'}</span></div>`;
-  }
-
-  function hideImageTooltip(){
-    clearTimeout(hoverTimeout);
-    currentHoverItem = null;
-    tooltipEl.style.display = 'none';
-  }
-
-  function formatItemLink(itemNo,ssdRaw,edsRaw){
-    const raw = String(itemNo).trim();
-    const cleanNo = raw.replace(/[^0-9]/g,'');
-    if(cleanNo.length > 0){
-      const paddedNo = cleanNo.padStart(8,'0');
-      const fSsd = parseExcelDate(ssdRaw);
-      const fEds = parseExcelDate(edsRaw);
-      return `<a href="https://piafacts.ikea.net/kr/en/${paddedNo}" target="_blank" class="item-link" onclick="event.stopPropagation();" onmouseenter="showImageTooltip(event,'${paddedNo}','${fSsd}','${fEds}')" onmouseleave="hideImageTooltip()</b>`;
-  }
-
-  function exportToXlsx(){
-    if(!displayedPivotRows || !displayedPivotRows.length){
-      alert('No data to export');
-      return;
+    function processPivotData(list){
+      const pivot = buildPivotMain(list);
+      allPivotRows = pivot.pivotRows;
+      globalSortedDates = pivot.sortedDates;
+      renderDateFilterChips(globalSortedDates, pivot.hasNotFixed);
+      updateTableDisplay();
     }
 
-    function doExport(){
-      const header = ['HFB','PA','Item No','Item Name'];
-      if(exportShowNotFixed) header.push('Not Fixed');
-      exportVisibleDates.forEach(d=>header.push(d));
+    function renderDateFilterChips(dates, hasNotFixed){
+      const container = document.getElementById('dateFilterChips');
+      container.innerHTML = '';
 
-      const rows = [header];
+      const createChip = (val,label)=>{
+        const div = document.createElement('div');
+        div.className = 'filter-chip';
+        if(selectedDateFilters.has(val)) div.classList.add('active');
+        div.innerHTML = `<i class="fas fa-calendar-check"></i> ${label}`;
+        div.onclick = ()=>{
+          if(selectedDateFilters.has(val)){
+            selectedDateFilters.delete(val);
+            div.classList.remove('active');
+          } else {
+            selectedDateFilters.add(val);
+            div.classList.add('active');
+          }
+          filterPivot();
+        };
+        return div;
+      };
+
+      if(hasNotFixed) container.appendChild(createChip('Not Fixed','Not Fixed (미정/예상)'));
+      dates.forEach(d=>container.appendChild(createChip(d,d)));
+    }
+
+    function clearDateFilters(){
+      selectedDateFilters.clear();
+      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      filterPivot();
+    }
+
+    const debounceFilter = debounce(()=>{
+      const hfb = document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value;
+      if(hfb) localStorage.setItem('last_hfb', hfb);
+      filterPivot();
+    },400);
+
+    function filterPivot(){ updateTableDisplay(); }
+
+    function sortTable(col){
+      currentSortAsc = (currentSortCol === col) ? !currentSortAsc : true;
+      currentSortCol = col;
+      updateTableDisplay();
+    }
+
+    function getSortIcon(col){
+      if(currentSortCol !== col) return '<i class="fas fa-sort sort-icon"></i>';
+      return currentSortAsc ? '<i class="fas fa-sort-up sort-icon active"></i>' : '<i class="fas fa-sort-down sort-icon active"></i>';
+    }
+
+    function updateTableDisplay(){
+      const isMobile = window.innerWidth <= 768;
+      const pfHfb = document.getElementById('pf-hfb').value.trim().toUpperCase();
+      const pfPa = document.getElementById('pf-pa').value.trim().toUpperCase();
+      const headerHfb = (document.getElementById('hfb-filter')?.value || '').trim().toUpperCase();
+      const headerPa = (document.getElementById('pa-filter')?.value || '').trim().toUpperCase();
+      const hfbVal = isMobile ? pfHfb : headerHfb;
+      const paVal = isMobile ? pfPa : headerPa;
+      const hasDateFilter = selectedDateFilters.size > 0;
+
+      if(isMobile){
+        const isEmpty = !hfbVal && !paVal && !hasDateFilter;
+        document.getElementById('pivotEmptyState').style.display = isEmpty ? 'block' : 'none';
+        document.getElementById('pivotTable').style.display = isEmpty ? 'none' : 'table';
+        if(isEmpty) return;
+      } else {
+        document.getElementById('pivotEmptyState').style.display = 'none';
+        document.getElementById('pivotTable').style.display = 'table';
+      }
+
+      const visibleDates = hasDateFilter ? globalSortedDates.filter(d=>selectedDateFilters.has(d)) : [...globalSortedDates];
+      const showNotFixed = !hasDateFilter || selectedDateFilters.has('Not Fixed');
+      exportVisibleDates = visibleDates;
+      exportShowNotFixed = showNotFixed;
+      const sig = visibleDates.join('|') + (showNotFixed ? '|NF' : '') + (isMobile ? '|M' : '|P') + `|Sort:${currentSortCol}:${currentSortAsc}`;
+
+      if(sig !== lastRenderedDateColumns){
+        let theadHtml = `<tr>
+          <th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
+          <th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
+          <th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
+          <th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>`;
+
+        if(showNotFixed){
+          theadHtml += `<th class="not-fixed-col" onclick="sortTable('Not Fixed')">미정/예상<br>(Not Fixed) ${getSortIcon('Not Fixed')}</th>`;
+        }
+
+        visibleDates.forEach(d=>{
+          theadHtml += `<th class="date-col" onclick="sortTable('${d}')">${d} ${getSortIcon(d)}</th>`;
+        });
+
+        theadHtml += '</tr>';
+        document.getElementById('pivotHead').innerHTML = theadHtml;
+        lastRenderedDateColumns = sig;
+
+        if(!isMobile){
+          if(document.getElementById('hfb-filter')) document.getElementById('hfb-filter').value = hfbVal;
+          if(document.getElementById('pa-filter')) document.getElementById('pa-filter').value = paVal;
+        }
+      }
+
+      const itemNoVal = (document.querySelector('input[data-field="itemNo"]')?.value || '').trim().toUpperCase();
+      const itemNameVal = (document.querySelector('input[data-field="itemName"]')?.value || '').trim().toUpperCase();
+
+      const filteredRows = allPivotRows.filter(row=>{
+        if(hfbVal && String(row.hfb).toUpperCase() !== hfbVal) return false;
+        if(paVal && String(row.pa).toUpperCase() !== paVal) return false;
+        if(itemNoVal && String(row.itemNo).toUpperCase().indexOf(itemNoVal) === -1) return false;
+        if(itemNameVal && String(row.itemName).toUpperCase().indexOf(itemNameVal) === -1) return false;
+
+        if(hasDateFilter){
+          let hit = selectedDateFilters.has('Not Fixed') && row.notFixedQty > 0;
+          if(!hit){
+            for(const k of selectedDateFilters){
+              if(k !== 'Not Fixed' && row.dates[k] > 0){
+                hit = true;
+                break;
+              }
+            }
+          }
+          if(!hit) return false;
+        }
+        return true;
+      });
+
+      if(currentSortCol){
+        filteredRows.sort((a,b)=>{
+          let vA, vB;
+          if(currentSortCol === 'itemNo'){ vA = String(a.itemNo); vB = String(b.itemNo); }
+          else if(currentSortCol === 'itemName'){ vA = String(a.itemName); vB = String(b.itemName); }
+          else if(currentSortCol === 'hfb'){ vA = String(a.hfb); vB = String(b.hfb); }
+          else if(currentSortCol === 'pa'){ vA = String(a.pa); vB = String(b.pa); }
+          else if(currentSortCol === 'Not Fixed'){ vA = a.notFixedQty || 0; vB = b.notFixedQty || 0; }
+          else { vA = a.dates[currentSortCol] || 0; vB = b.dates[currentSortCol] || 0; }
+
+          const nA = parseFloat(vA), nB = parseFloat(vB);
+          if(!isNaN(nA) && !isNaN(nB)) return currentSortAsc ? nA - nB : nB - nA;
+          if(vA < vB) return currentSortAsc ? -1 : 1;
+          if(vA > vB) return currentSortAsc ? 1 : -1;
+          return 0;
+        });
+      }
+
+      displayedPivotRows = filteredRows;
+
+      const tbody = document.getElementById('pivotBody');
+      tbody.innerHTML = '';
+
+      if(!filteredRows.length){
+        tbody.innerHTML = `<tr><td colspan="20" style="padding:50px;text-align:center;color:#888;font-size:1.1rem;background:#fff;"><i class="fas fa-box-open" style="font-size:2rem;color:#ccc;margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:.85rem;color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
+        return;
+      }
+
+      let idx = 0;
+      const CHUNK = 100;
+      const MAX = Math.min(filteredRows.length, 3000);
+
+      function renderChunk(){
+        let html = '';
+        const end = Math.min(idx + CHUNK, MAX);
+        for(; idx < end; idx++){
+          const r = filteredRows[idx];
+          const nf = (showNotFixed && r.notFixedQty > 0) ? r.notFixedQty : '';
+          html += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo,r.ssdRaw,r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`;
+          if(showNotFixed) html += `<td class="not-fixed-col">${nf}</td>`;
+          visibleDates.forEach(d=>{ html += `<td class="qty-cell">${r.dates[d] || ''}</td>`; });
+          html += '</tr>';
+        }
+        tbody.insertAdjacentHTML('beforeend', html);
+        if(idx < MAX) requestAnimationFrame(renderChunk);
+      }
+      requestAnimationFrame(renderChunk);
+    }
+
+    document.addEventListener('mousemove', e=>{
+      if(tooltipEl.style.display === 'block'){
+        tooltipEl.style.left = `${e.clientX+15}px`;
+        tooltipEl.style.top = `${e.clientY+15}px`;
+      }
+    });
+
+    function showImageTooltip(e,itemNo,ssd,eds){
+      if(window.innerWidth <= 768) return;
+      clearTimeout(hoverTimeout);
+      currentHoverItem = itemNo;
+      tooltipEl.style.left = `${e.clientX+15}px`;
+      tooltipEl.style.top = `${e.clientY+15}px`;
+      tooltipEl.style.display = 'block';
+      tooltipEl.querySelector('.img-wrapper').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+      hoverTimeout = setTimeout(async ()=>{
+        if(currentHoverItem !== itemNo) return;
+        const paddedNo = String(itemNo).replace(/[^0-9]/g,'').padStart(8,'0');
+        if(imageCache.has(paddedNo)){
+          renderTooltipImage(imageCache.get(paddedNo),ssd,eds);
+          return;
+        }
+        try{
+          const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
+          const url = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
+          imageCache.set(paddedNo, url);
+          if(currentHoverItem === itemNo) renderTooltipImage(url,ssd,eds);
+        }catch{
+          renderTooltipImage('ERROR',ssd,eds);
+        }
+      },400);
+    }
+
+    function findBestImage(obj){
+      let best = null;
+      function traverse(o){
+        if(!o || typeof o !== 'object') return;
+        for(const k in o){
+          if(typeof o[k] === 'string'){
+            let v = o[k].toLowerCase();
+            if(v.match(/\.(jpg|jpeg|png|webp|avif)(\?.*)?$/) && !v.includes('.svg')){
+              let url = o[k];
+              if(url.startsWith('//')) url = 'https:' + url;
+              else if(url.startsWith('/')) url = 'https://www.ikea.com' + url;
+              if(!best) best = url;
+              else if(url.includes('s5') || url.includes('main')) best = url;
+            }
+          } else {
+            traverse(o[k]);
+          }
+        }
+      }
+      traverse(obj);
+      return best;
+    }
+
+    function renderTooltipImage(url,ssd,eds){
+      const imgWrapper = tooltipEl.querySelector('.img-wrapper');
+      imgWrapper.innerHTML = '';
+
+      if(url === 'NO_IMAGE' || url === 'ERROR'){
+        imgWrapper.innerHTML = '<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>';
+      } else {
+        const img = document.createElement('img');
+        img.alt = 'Preview';
+        img.src = url;
+        img.onerror = ()=>{
+          imgWrapper.innerHTML = '<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>';
+        };
+        imgWrapper.appendChild(img);
+      }
+
+      tooltipEl.querySelector('.info-wrapper').innerHTML = `<div style="margin-bottom:2px;"><b>SSD :</b> <span style="color:var(--ikea-blue);font-weight:600;">${ssd || '-'}</span></div><div><b>EDS :</b> <span style="color:var(--ikea-blue);font-weight:600;">${eds || '-'}</span></div>`;
+    }
+
+    function hideImageTooltip(){
+      clearTimeout(hoverTimeout);
+      currentHoverItem = null;
+      tooltipEl.style.display = 'none';
+    }
+
+    function formatItemLink(itemNo,ssdRaw,edsRaw){
+      const raw = String(itemNo).trim();
+      const cleanNo = raw.replace(/[^0-9]/g,'');
+      if(cleanNo.length > 0){
+        const paddedNo = cleanNo.padStart(8,'0');
+        const fSsd = parseExcelDate(ssdRaw);
+        const fEds = parseExcelDate(edsRaw);
+        return `<a href="https://piafacts.ikea.net/kr/en/${paddedNo}" target="_blank" class="item-link" onclick="event.stopPropagation();" onmouseenter="showImageTooltip(event,'${paddedNo}','${fSsd}','${fEds}')" onmouseleave="hideImageTooltip()">${raw}</a>`;
+      }
+      return `<b>${raw}</b>`;
+    }
+
+    function exportToXlsx(){
+      if(!displayedPivotRows || !displayedPivotRows.length){
+        alert('No data to export');
+        return;
+      }
+
+      function doExport(){
+        const header = ['HFB','PA','Item No','Item Name'];
+        if(exportShowNotFixed) header.push('Not Fixed');
+        exportVisibleDates.forEach(d=>header.push(d));
+
+        const rows = [header];
+        displayedPivotRows.forEach(row=>{
+          const r = [row.hfb,row.pa,row.itemNo,row.itemName];
+          if(exportShowNotFixed) r.push(row.notFixedQty || '');
+          exportVisibleDates.forEach(d=>r.push(row.dates[d] || ''));
+          rows.push(r);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,'Filtered_Arrival');
+        XLSX.writeFile(wb,`${ymd(new Date())}_filtered_export.xlsx`);
+      }
+
+      if(typeof XLSX !== 'undefined'){
+        doExport();
+        return;
+      }
+
+      const s = document.createElement('script');
+      s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+      s.onload = doExport;
+      document.head.appendChild(s);
+    }
+
+    function copyToClipboard(){
+      if(!displayedPivotRows || !displayedPivotRows.length){
+        alert('복사할 데이터가 없습니다.');
+        return;
+      }
+
+      let tsv = ['HFB','PA','Item No','Item Name'];
+      if(exportShowNotFixed) tsv.push('Not Fixed');
+      exportVisibleDates.forEach(d=>tsv.push(d));
+      tsv = tsv.join('\t') + '\n';
+
       displayedPivotRows.forEach(row=>{
-        const r = [row.hfb,row.pa,row.itemNo,row.itemName];
+        let r = [row.hfb,row.pa,row.itemNo,row.itemName];
         if(exportShowNotFixed) r.push(row.notFixedQty || '');
         exportVisibleDates.forEach(d=>r.push(row.dates[d] || ''));
-        rows.push(r);
+        tsv += r.join('\t') + '\n';
       });
 
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb,ws,'Filtered_Arrival');
-      XLSX.writeFile(wb,`${ymd(new Date())}_filtered_export.xlsx`);
+      navigator.clipboard.writeText(tsv)
+        .then(()=>alert('✅ 현재 필터링된 데이터가 클립보드에 복사되었습니다. 메신저나 엑셀에 붙여넣기(Ctrl+V) 하세요!'))
+        .catch(()=>alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
     }
 
-    if(typeof XLSX !== 'undefined'){
-      doExport();
-      return;
+    let html5QrcodeScanner = null;
+    function loadQrCodeLib(cb){
+      if(typeof Html5Qrcode !== 'undefined'){ cb(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/html5-qrcode';
+      s.onload = cb;
+      document.head.appendChild(s);
     }
 
-    const s = document.createElement('script');
-    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
-    s.onload = doExport;
-    document.head.appendChild(s);
-  }
-
-  function copyToClipboard(){
-    if(!displayedPivotRows || !displayedPivotRows.length){
-      alert('복사할 데이터가 없습니다.');
-      return;
+    function startScanner(){
+      loadQrCodeLib(()=>{
+        document.getElementById('scanner-modal').style.display = 'flex';
+        if(!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode('reader');
+        html5QrcodeScanner.start(
+          { facingMode:'environment' },
+          { fps:15, qrbox:{width:300,height:150}, aspectRatio:1.0 },
+          onScanSuccess
+        ).catch(()=>alert('Camera Error'));
+      });
     }
 
-    let tsv = ['HFB','PA','Item No','Item Name'];
-    if(exportShowNotFixed) tsv.push('Not Fixed');
-    exportVisibleDates.forEach(d=>tsv.push(d));
-    tsv = tsv.join('\\t') + '\\n';
+    function onScanSuccess(t){
+      let n = t.replace(/[^0-9]/g,'');
+      if(n.length >= 8) n = n.substring(0,8);
+      document.getElementById('itemInput').value = n;
+      stopScanner();
+      performSearch();
+    }
 
-    displayedPivotRows.forEach(row=>{
-      let r = [row.hfb,row.pa,row.itemNo,row.itemName];
-      if(exportShowNotFixed) r.push(row.notFixedQty || '');
-      exportVisibleDates.forEach(d=>r.push(row.dates[d] || ''));
-      tsv += r.join('\\t') + '\\n';
-    });
-
-    navigator.clipboard.writeText(tsv)
-      .then(()=>alert('✅ 현재 필터링된 데이터가 클립보드에 복사되었습니다. 메신저나 엑셀에 붙여넣기(Ctrl+V) 하세요!'))
-      .catch(()=>alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
-  }
-
-  let html5QrcodeScanner = null;
-  function loadQrCodeLib(cb){
-    if(typeof Html5Qrcode !== 'undefined'){ cb(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/html5-qrcode';
-    s.onload = cb;
-    document.head.appendChild(s);
-  }
-
-  function startScanner(){
-    loadQrCodeLib(()=>{
-      document.getElementById('scanner-modal').style.display = 'flex';
-      if(!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode('reader');
-      html5QrcodeScanner.start(
-        { facingMode:'environment' },
-        { fps:15, qrbox:{width:300,height:150}, aspectRatio:1.0 },
-        onScanSuccess
-      ).catch(()=>alert('Camera Error'));
-    });
-  }
-
-  function onScanSuccess(t){
-    let n = t.replace(/[^0-9]/g,'');
-    if(n.length >= 8) n = n.substring(0,8);
-    document.getElementById('itemInput').value = n;
-    stopScanner();
-    performSearch();
-  }
-
-  function stopScanner(){
-    if(html5QrcodeScanner){
-      html5QrcodeScanner.stop().then(()=>{
+    function stopScanner(){
+      if(html5QrcodeScanner){
+        html5QrcodeScanner.stop().then(()=>{
+          document.getElementById('scanner-modal').style.display = 'none';
+        });
+      } else {
         document.getElementById('scanner-modal').style.display = 'none';
-      });
-    } else {
-      document.getElementById('scanner-modal').style.display = 'none';
-    }
-  }
-
-  const mdLoadingStatus=document.getElementById('md-loading-status'),
-        mdUploadSection=document.getElementById('md-upload-section'),
-        mdSearchSection=document.getElementById('md-search-section'),
-        mdDbStatusBadge=document.getElementById('md-db-status-badge'),
-        mdDbStatusSub=document.getElementById('md-db-status-sub'),
-        mdFileInput=document.getElementById('md-dropzone-file'),
-        mdSearchBtn=document.getElementById('md-search-btn'),
-        mdInputKeyword=document.getElementById('md-input-keyword'),
-        mdResultContainer=document.getElementById('md-result-container'),
-        mdErrorMessage=document.getElementById('md-error-message'),
-        mdErrCodeSpan=document.getElementById('md-err-code'),
-        mdResMarket=document.getElementById('md-res-market'),
-        mdResPMA=document.getElementById('md-res-pma'),
-        mdPmaLabel=document.getElementById('md-pma-label'),
-        mdResAddress=document.getElementById('md-res-address'),
-        mdResPostcodeVal=document.getElementById('md-res-postcode-val'),
-        mdMapFrame=document.getElementById('md-map-frame'),
-        mdSelectedAddressBox=document.getElementById('md-selected-address-box'),
-        mdDisplaySelectedAddr=document.getElementById('md-display-selected-addr');
-
-  function attemptAutoLoadMarketData(){
-    if(isMdLoaded) return;
-    mdLoadingStatus.classList.remove('hidden');
-    fetch(TARGET_CSV_FILENAME)
-      .then(r=>{ if(!r.ok) throw new Error('not ok'); return r.text(); })
-      .then(csvText=>{
-        parseMarketCSV(csvText);
-        mdLoadingStatus.classList.add('hidden');
-      })
-      .catch(()=>{
-        mdLoadingStatus.classList.add('hidden');
-        mdUploadSection.classList.remove('hidden');
-      });
-  }
-
-  mdFileInput.addEventListener('change',e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    Papa.parse(file,{
-      header:true,
-      skipEmptyLines:true,
-      complete:r=>{
-        onMarketDataLoaded(r.data);
-        mdUploadSection.classList.add('hidden');
-      },
-      error:err=>alert('File read failed: ' + err)
-    });
-  });
-
-  function parseMarketCSV(csvText){
-    Papa.parse(csvText,{
-      header:true,
-      skipEmptyLines:true,
-      complete:r=>onMarketDataLoaded(r.data)
-    });
-  }
-
-  function onMarketDataLoaded(dataRows){
-    mdData = dataRows;
-    isMdLoaded = true;
-    mdDbStatusBadge.textContent = '✅ 데이터 연결됨';
-    mdDbStatusBadge.className = 'bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded border border-green-200';
-    mdDbStatusSub.textContent = 'Data Connected';
-    mdSearchSection.classList.remove('opacity-50','pointer-events-none');
-    mdInputKeyword.focus();
-  }
-
-  function handleMarketSearchAction(){
-    if(!isMdLoaded) return;
-    const val = mdInputKeyword.value.trim();
-    if(!val) return;
-    if(/^\\d{5}$/.test(val)){
-      mdSelectedAddressBox.classList.add('hidden');
-      lookupMarketByPostcode(val);
-    } else {
-      openDaumAddressSearch(val);
-    }
-  }
-
-  function lookupMarketByPostcode(code){
-    const result = mdData.find(r=>r['Postcode'] == code);
-    if(result){
-      mdErrorMessage.classList.add('hidden');
-      mdResultContainer.classList.remove('hidden');
-
-      let displayCode = result['PMA'];
-      const fallbackCode = result['SMA'];
-      let labelText = 'PMA';
-
-      if(!displayCode || displayCode.trim() === '' || displayCode === '#N/A'){
-        displayCode = fallbackCode;
-        labelText = 'SMA';
       }
-
-      mdResMarket.textContent = result['Market Name'] || 'N/A';
-      mdPmaLabel.textContent = labelText;
-      mdResPMA.textContent = displayCode || 'N/A';
-      mdResPostcodeVal.textContent = code;
-
-      const parts = [
-        result['Province\\nSi / Do English'],
-        result['District\\nGu / Gun English'],
-        result['Neighbourhood\\nDong English']
-      ].filter(p=>p && p.trim() !== '');
-
-      const addr = parts.join(' ') + ', South Korea';
-      mdResAddress.textContent = addr;
-      updateMarketMap(addr);
-    } else {
-      mdResultContainer.classList.add('hidden');
-      mdErrorMessage.classList.remove('hidden');
-      mdErrCodeSpan.textContent = code;
     }
-  }
 
-  function updateMarketMap(address){
-    mdMapFrame.src = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
-  }
+    const mdLoadingStatus=document.getElementById('md-loading-status'),
+          mdUploadSection=document.getElementById('md-upload-section'),
+          mdSearchSection=document.getElementById('md-search-section'),
+          mdDbStatusBadge=document.getElementById('md-db-status-badge'),
+          mdDbStatusSub=document.getElementById('md-db-status-sub'),
+          mdFileInput=document.getElementById('md-dropzone-file'),
+          mdSearchBtn=document.getElementById('md-search-btn'),
+          mdInputKeyword=document.getElementById('md-input-keyword'),
+          mdResultContainer=document.getElementById('md-result-container'),
+          mdErrorMessage=document.getElementById('md-error-message'),
+          mdErrCodeSpan=document.getElementById('md-err-code'),
+          mdResMarket=document.getElementById('md-res-market'),
+          mdResPMA=document.getElementById('md-res-pma'),
+          mdPmaLabel=document.getElementById('md-pma-label'),
+          mdResAddress=document.getElementById('md-res-address'),
+          mdResPostcodeVal=document.getElementById('md-res-postcode-val'),
+          mdMapFrame=document.getElementById('md-map-frame'),
+          mdSelectedAddressBox=document.getElementById('md-selected-address-box'),
+          mdDisplaySelectedAddr=document.getElementById('md-display-selected-addr');
 
-  function openDaumAddressSearch(keyword){
-    new daum.Postcode({
-      oncomplete:function(d){
-        const zonecode = d.zonecode;
-        const fullAddr = d.roadAddress || d.jibunAddress;
-        mdInputKeyword.value = zonecode;
-        mdSelectedAddressBox.classList.remove('hidden');
-        mdDisplaySelectedAddr.textContent = fullAddr;
-        lookupMarketByPostcode(zonecode);
+    function attemptAutoLoadMarketData(){
+      if(isMdLoaded) return;
+      mdLoadingStatus.classList.remove('hidden');
+      fetch(TARGET_CSV_FILENAME)
+        .then(r=>{ if(!r.ok) throw new Error('not ok'); return r.text(); })
+        .then(csvText=>{
+          parseMarketCSV(csvText);
+          mdLoadingStatus.classList.add('hidden');
+        })
+        .catch(()=>{
+          mdLoadingStatus.classList.add('hidden');
+          mdUploadSection.classList.remove('hidden');
+        });
+    }
+
+    mdFileInput.addEventListener('change', e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      Papa.parse(file,{
+        header:true,
+        skipEmptyLines:true,
+        complete:r=>{
+          onMarketDataLoaded(r.data);
+          mdUploadSection.classList.add('hidden');
+        },
+        error:err=>alert('File read failed: ' + err)
+      });
+    });
+
+    function parseMarketCSV(csvText){
+      Papa.parse(csvText,{
+        header:true,
+        skipEmptyLines:true,
+        complete:r=>onMarketDataLoaded(r.data)
+      });
+    }
+
+    function onMarketDataLoaded(dataRows){
+      mdData = dataRows;
+      isMdLoaded = true;
+      mdDbStatusBadge.textContent = '✅ 데이터 연결됨';
+      mdDbStatusBadge.className = 'bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded border border-green-200';
+      mdDbStatusSub.textContent = 'Data Connected';
+      mdSearchSection.classList.remove('opacity-50','pointer-events-none');
+      mdInputKeyword.focus();
+    }
+
+    function handleMarketSearchAction(){
+      if(!isMdLoaded) return;
+      const val = mdInputKeyword.value.trim();
+      if(!val) return;
+      if(/^\d{5}$/.test(val)){
+        mdSelectedAddressBox.classList.add('hidden');
+        lookupMarketByPostcode(val);
+      } else {
+        openDaumAddressSearch(val);
       }
-    }).open({ q: keyword });
-  }
+    }
 
-  mdSearchBtn.addEventListener('click',handleMarketSearchAction);
-  mdInputKeyword.addEventListener('keypress',e=>{
-    if(e.key === 'Enter') handleMarketSearchAction();
-  });
+    function lookupMarketByPostcode(code){
+      const result = mdData.find(r=>r['Postcode'] == code);
+      if(result){
+        mdErrorMessage.classList.add('hidden');
+        mdResultContainer.classList.remove('hidden');
+
+        let displayCode = result['PMA'];
+        const fallbackCode = result['SMA'];
+        let labelText = 'PMA';
+
+        if(!displayCode || displayCode.trim() === '' || displayCode === '#N/A'){
+          displayCode = fallbackCode;
+          labelText = 'SMA';
+        }
+
+        mdResMarket.textContent = result['Market Name'] || 'N/A';
+        mdPmaLabel.textContent = labelText;
+        mdResPMA.textContent = displayCode || 'N/A';
+        mdResPostcodeVal.textContent = code;
+
+        const parts = [
+          result['Province\nSi / Do English'],
+          result['District\nGu / Gun English'],
+          result['Neighbourhood\nDong English']
+        ].filter(p=>p && p.trim() !== '');
+
+        const addr = parts.join(' ') + ', South Korea';
+        mdResAddress.textContent = addr;
+        updateMarketMap(addr);
+      } else {
+        mdResultContainer.classList.add('hidden');
+        mdErrorMessage.classList.remove('hidden');
+        mdErrCodeSpan.textContent = code;
+      }
+    }
+
+    function updateMarketMap(address){
+      mdMapFrame.src = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+    }
+
+    function openDaumAddressSearch(keyword){
+      new daum.Postcode({
+        oncomplete:function(d){
+          const zonecode = d.zonecode;
+          const fullAddr = d.roadAddress || d.jibunAddress;
+          mdInputKeyword.value = zonecode;
+          mdSelectedAddressBox.classList.remove('hidden');
+          mdDisplaySelectedAddr.textContent = fullAddr;
+          lookupMarketByPostcode(zonecode);
+        }
+      }).open({ q: keyword });
+    }
+
+    mdSearchBtn.addEventListener('click', handleMarketSearchAction);
+    mdInputKeyword.addEventListener('keypress', e=>{
+      if(e.key === 'Enter') handleMarketSearchAction();
+    });
   </script>
 </body>
 </html>
