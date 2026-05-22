@@ -10,7 +10,6 @@
   <link rel="apple-touch-icon" href="./Search.jpg">
   <meta name="theme-color" content="#ffdb00">
   <title>STO582 Goods Arrival Plan Search</title>
-
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3MWM51MSF8"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -18,16 +17,12 @@
     gtag('js', new Date());
     gtag('config', 'G-3MWM51MSF8');
   </script>
-
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { corePlugins: { preflight: false } };
-  </script>
-
+  <script>tailwind.config={corePlugins:{preflight:false}};</script>
   <style>
     :root { --ikea-blue:#0058a3; --ikea-yellow:#ffdb00; --bg-color:#f5f7f8; --text-dark:#111; --sidebar-width:250px; }
     body { font-family:'Noto Sans KR','Roboto',sans-serif; background-color:var(--bg-color); margin:0; padding:0; color:var(--text-dark); display:flex; flex-direction:column; min-height:100vh; }
@@ -41,7 +36,6 @@
     #stale-alert{ display:none; width:100%; background:#e74c3c; color:white; text-align:center; padding:10px; font-weight:bold; font-size:.9rem; z-index:1999; }
     #load-progress-bar-wrap{ display:none; width:100%; height:4px; background:#e0e0e0; position:fixed; top:0; left:0; z-index:9999; }
     #load-progress-bar{ height:4px; background:var(--ikea-blue); width:0%; transition:width .3s ease; }
-
     .app-container{ display:flex; flex:1; width:100%; overflow:hidden; }
     .sidebar{ width:var(--sidebar-width); background:#95a5a6; color:#fff; display:flex; flex-direction:column; flex-shrink:0; padding-top:20px; }
     .nav-item{ padding:15px 20px; cursor:pointer; transition:all .2s; font-size:1.1rem; border-bottom:1px solid rgba(255,255,255,.1); }
@@ -51,7 +45,6 @@
     .content-area{ flex:1; padding:40px; overflow-y:auto; background:var(--bg-color); }
     .tab-content{ display:none; width:100%; flex-direction:column; align-items:center; }
     .tab-content.active{ display:flex; }
-
     .info-container{ width:100%; max-width:1200px; display:flex; flex-direction:column; gap:30px; }
     .info-card{ background:white; border-radius:8px; padding:30px; box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; gap:30px; align-items:flex-start; }
     .info-text-area{ flex:1.2; }
@@ -64,14 +57,12 @@
     .info-desc{ font-size:1rem; color:#333; line-height:1.6; }
     .bi-en{ display:block; font-size:.85em; color:#777; font-weight:300; margin-top:3px; margin-bottom:4px; }
     .color-box{ display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; }
-    .cb-green{ background:#d4edda; } .cb-yellow{ background:#fff3cd; } .cb-red{ background:#f8d7da; }
-
+    .cb-green { background: #d4edda; } .cb-yellow { background: #fff3cd; } .cb-red { background: #f8d7da; }
     .status-badge{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:bold; background:#fff3cd; color:#856404; white-space:nowrap; border:1px solid #ffeeba; }
     .status-badge.connected{ background:#d4edda; color:#155724; border-color:#c3e6cb; }
     .status-badge.error{ background:#f8d7da; color:#721c24; border-color:#f5c6cb; }
     .btn-export-csv{ background:#217346; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:.85rem; font-weight:500; display:flex; align-items:center; gap:6px; }
     .btn-copy{ background:#f39c12; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:.85rem; font-weight:500; display:flex; align-items:center; gap:6px; }
-
     .search-card{ background:#fff; padding:40px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,.05); width:100%; max-width:800px; text-align:left; margin-bottom:20px; }
     .search-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .search-title{ font-size:1.2rem; font-weight:600; color:var(--ikea-blue); display:flex; align-items:center; gap:6px; }
@@ -97,12 +88,10 @@
     .date-badge.tbd{ background:#f8d7da!important; color:#721c24!important; border:1px solid #f5c6cb; }
     .item-link{ color:var(--ikea-blue); text-decoration:none; cursor:pointer; font-weight:700; }
     .item-link:hover{ color:#003a6c; text-decoration:underline; }
-
     #image-tooltip{ position:fixed; display:none; width:150px; background:#fff; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,.2); z-index:9999; pointer-events:none; overflow:hidden; text-align:center; }
     #image-tooltip .img-wrapper{ width:150px; height:150px; display:flex; align-items:center; justify-content:center; background:#fff; }
     #image-tooltip .img-wrapper img{ width:100%; height:100%; object-fit:cover; }
     #image-tooltip .info-wrapper{ border-top:2px solid var(--ikea-blue); background:#f0f8ff; padding:8px; text-align:left; font-size:.75rem; line-height:1.4; color:#555; }
-
     .mobile-only-filters{ display:none; }
     .pc-header-filter,.always-visible-filter{ display:block; width:90%; padding:4px; margin-top:5px; border:1px solid #ccc; border-radius:3px; font-size:.8rem; text-align:center; }
     .pivot-container{ width:100%; background:white; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,.05); padding:0; box-sizing:border-box; height:72vh; overflow:auto; position:relative; border:1px solid #ddd; }
@@ -140,378 +129,35 @@
     .md-loader{ border:3px solid #f3f3f3; border-radius:50%; border-top:3px solid #1e40af; width:20px; height:20px; animation:spin 1s linear infinite; }
     @keyframes spin{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
     #md-map-frame{ width:100%; height:300px; border:0; border-radius:.5rem; }
-
-    @media print{
-      body,.app-container,.content-area{ background:white!important; display:block!important; padding:0!important; margin:0!important; }
-      header,.sidebar,.filter-tray-container,.mobile-only-filters,.pivot-controls-right,footer,.search-card,.dashboard,#stale-alert,#load-progress-bar-wrap{ display:none!important; }
-      .pivot-container{ height:auto!important; max-height:none!important; overflow:visible!important; border:none!important; box-shadow:none!important; }
-      .pivot-table{ width:100%!important; min-width:auto!important; }
-      .pivot-table th,.pivot-table td{ border:1px solid #000!important; color:black!important; }
-      #image-tooltip{ display:none!important; }
-    }
-
-    @media (max-width:768px){
-      .pc-only-nav{ display:none!important; }
-      .app-container{ flex-direction:column; display:block; }
-      .sidebar{ width:100%; height:auto; flex-direction:row; padding-top:0; }
-      .nav-item{ flex:1; text-align:center; padding:12px 5px; border-right:1px solid #ddd; font-size:.95rem; white-space:nowrap; }
-      .nav-sub{ font-size:.7rem; }
-      .content-area{ padding:15px 10px; }
-      header{ height:auto; padding:12px 10px; flex-direction:column; gap:8px; align-items:center; }
-      .header-left{ width:100%; align-items:center; }
-      .main-title{ font-size:1.1rem; width:100%; justify-content:center; white-space:nowrap; }
-      .link-group{ margin-left:0; margin-top:5px; width:100%; display:flex; justify-content:center; gap:12px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; }
-      .header-sub-link{ font-size:.75rem; white-space:nowrap; gap:4px; }
-      .header-right{ width:100%; align-items:center; flex-direction:row; justify-content:center; gap:15px; margin-top:5px; }
-      .item-link{ color:inherit!important; text-decoration:none!important; pointer-events:none!important; cursor:default!important; font-weight:bold; }
-      .mobile-only-tip{ display:block; margin-top:10px; }
-      .pivot-container{ height:60vh; padding:0; border:1px solid #ddd; }
-      .pivot-table{ min-width:auto; width:100%; table-layout:auto; }
-      .info-card{ flex-direction:column; padding:20px; gap:20px; }
-      .search-card{ padding:20px; }
-      .search-title{ display:block; text-align:center; font-size:1.1rem; }
-      .search-title .en-sub{ display:block; margin-left:0; margin-top:4px; font-size:.75rem; color:#999; }
-      .btn-scan-trigger{ display:flex; }
-      .pc-table-view{ display:none!important; } .mobile-result-view{ display:block; }
-      .dashboard{ gap:8px; margin-bottom:20px; }
-      .dash-card{ padding:12px 5px; }
-      .dash-card h3{ font-size:1.4rem; margin:0 0 5px 0; }
-      .dash-card p{ font-size:.65rem; letter-spacing:-.3px; }
-      .dash-card.image-card{ display:none!important; }
-      .pivot-header-wrapper{ align-items:flex-start; }
-      .pivot-controls-right{ flex-direction:column; align-items:flex-end; gap:5px; }
-      .btn-export-csv,.btn-copy{ padding:4px 8px; font-size:.75rem; }
-      .mobile-only-filters{ display:flex; gap:10px; background:white; padding:15px; border-radius:8px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,.05); }
-      .pf-group{ display:flex; flex-direction:column; gap:5px; flex:1; justify-content:center; }
-      .pf-label{ font-size:.85rem; font-weight:700; color:var(--ikea-blue); text-align:center; display:block; }
-      .pf-input{ padding:8px; border:1px solid #ccc; border-radius:4px; font-size:1rem; text-align:center; width:100%; box-sizing:border-box; }
-      .pc-header-filter,.always-visible-filter{ display:none; }
-      .col-itemname{ width:auto; min-width:140px; }
-      .col-itemno{ width:70px; font-size:.75rem; }
-      .date-col,.not-fixed-col{ width:auto; min-width:60px; font-size:.75rem; }
-      .empty-state{ display:block; padding:40px; text-align:center; color:#888; background:#f9f9f9; border-radius:8px; border:1px dashed #ccc; margin-top:10px; }
-      .filter-tray-container{ padding:10px; margin-bottom:10px; }
-      .tray-title{ font-size:.8rem; }
-      .filter-chip{ padding:4px 10px; font-size:.75rem; gap:4px; }
-    }
+    @media print{ body,.app-container,.content-area{ background:white!important; display:block!important; padding:0!important; margin:0!important; } header,.sidebar,.filter-tray-container,.mobile-only-filters,.pivot-controls-right,footer,.search-card,.dashboard,#stale-alert,#load-progress-bar-wrap{ display:none!important; } .pivot-container{ height:auto!important; max-height:none!important; overflow:visible!important; border:none!important; box-shadow:none!important; } .pivot-table{ width:100%!important; min-width:auto!important; } .pivot-table th,.pivot-table td{ border:1px solid #000!important; color:black!important; } #image-tooltip{ display:none!important; } }
+    @media (max-width:768px){ .pc-only-nav{ display:none!important; } .app-container{ flex-direction:column; display:block; } .sidebar{ width:100%; height:auto; flex-direction:row; padding-top:0; } .nav-item{ flex:1; text-align:center; padding:12px 5px; border-right:1px solid #ddd; font-size:.95rem; white-space:nowrap; } .nav-sub{ font-size:.7rem; } .content-area{ padding:15px 10px; } header{ height:auto; padding:12px 10px; flex-direction:column; gap:8px; align-items:center; } .header-left{ width:100%; align-items:center; } .main-title{ font-size:1.1rem; width:100%; justify-content:center; white-space:nowrap; } .link-group{ margin-left:0; margin-top:5px; width:100%; display:flex; justify-content:center; gap:12px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; } .header-sub-link{ font-size:.75rem; white-space:nowrap; gap:4px; } .header-right{ width:100%; align-items:center; flex-direction:row; justify-content:center; gap:15px; margin-top:5px; } .item-link{ color:inherit!important; text-decoration:none!important; pointer-events:none!important; cursor:default!important; font-weight:bold; } .mobile-only-tip{ display:block; margin-top:10px; } .pivot-container{ height:60vh; padding:0; border:1px solid #ddd; } .pivot-table{ min-width:auto; width:100%; table-layout:auto; } .info-card{ flex-direction:column; padding:20px; gap:20px; } .search-card{ padding:20px; } .search-title{ display:block; text-align:center; font-size:1.1rem; } .search-title .en-sub{ display:block; margin-left:0; margin-top:4px; font-size:.75rem; color:#999; } .btn-scan-trigger{ display:flex; } .pc-table-view{ display:none!important; } .mobile-result-view{ display:block; } .dashboard{ gap:8px; margin-bottom:20px; } .dash-card{ padding:12px 5px; } .dash-card h3{ font-size:1.4rem; margin:0 0 5px 0; } .dash-card p{ font-size:.65rem; letter-spacing:-.3px; } .dash-card.image-card{ display:none!important; } .pivot-header-wrapper{ align-items:flex-start; } .pivot-controls-right{ flex-direction:column; align-items:flex-end; gap:5px; } .btn-export-csv,.btn-copy{ padding:4px 8px; font-size:.75rem; } .mobile-only-filters{ display:flex; gap:10px; background:white; padding:15px; border-radius:8px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,.05); } .pf-group{ display:flex; flex-direction:column; gap:5px; flex:1; justify-content:center; } .pf-label{ font-size:.85rem; font-weight:700; color:var(--ikea-blue); text-align:center; display:block; } .pf-input{ padding:8px; border:1px solid #ccc; border-radius:4px; font-size:1rem; text-align:center; width:100%; box-sizing:border-box; } .pc-header-filter,.always-visible-filter{ display:none; } .col-itemname{ width:auto; min-width:140px; } .col-itemno{ width:70px; font-size:.75rem; } .date-col,.not-fixed-col{ width:auto; min-width:60px; font-size:.75rem; } .empty-state{ display:block; padding:40px; text-align:center; color:#888; background:#f9f9f9; border-radius:8px; border:1px dashed #ccc; margin-top:10px; } .filter-tray-container{ padding:10px; margin-bottom:10px; } .tray-title{ font-size:.8rem; } .filter-chip{ padding:4px 10px; font-size:.75rem; gap:4px; } }
   </style>
 </head>
 <body>
   <div id="load-progress-bar-wrap"><div id="load-progress-bar"></div></div>
   <div id="stale-alert"><i class="fas fa-exclamation-triangle"></i> 주의: 데이터가 3일(72시간) 이상 업데이트되지 않았습니다. (Updated &gt; 72h ago)</div>
-
-  <div id="scanner-modal">
-    <div style="color:white; margin-bottom:10px; text-align:center;"><i class="fas fa-barcode"></i> 바코드에 카메라를 대주세요</div>
-    <div id="reader"></div>
-    <button class="btn-modal" onclick="stopScanner()" style="margin-top:20px;">닫기</button>
-  </div>
-
-  <header>
-    <div class="header-left">
-      <a href="." class="main-title"><i class="fas fa-truck-fast" style="color:#111;"></i> STO582 Goods Arrival Plan Search</a>
-      <div class="link-group">
-        <a href="https://coworker.ingka.com/kr/ko/v1/" target="_blank" class="header-sub-link"><i class="fas fa-external-link-alt"></i> SäljaPro</a>
-        <a href="https://www.ikea.com/kr/ko/" target="_blank" class="header-sub-link"><i class="fas fa-home"></i> IKEA Home</a>
-        <a href="https://mhs-582.ikea.com/gateway/" target="_blank" class="header-sub-link"><i class="fas fa-desktop"></i> MHS</a>
-        <a href="https://piafacts.ikea.net/kr/en" target="_blank" class="header-sub-link"><i class="fas fa-info-circle"></i> PIA Facts</a>
-      </div>
-    </div>
-    <div class="header-right">
-      <span>Ver 1.9.0 (CSV Direct Loading)</span>
-      <div id="data-update-date">data update : -</div>
-    </div>
-  </header>
-
+  <div id="scanner-modal"><div style="color:white; margin-bottom:10px; text-align:center;"><i class="fas fa-barcode"></i> 바코드에 카메라를 대주세요</div><div id="reader"></div><button class="btn-modal" onclick="stopScanner()" style="margin-top:20px;">닫기</button></div>
+  <header><div class="header-left"><a href="." class="main-title"><i class="fas fa-truck-fast" style="color:#111;"></i> STO582 Goods Arrival Plan Search</a><div class="link-group"><a href="https://coworker.ingka.com/kr/ko/v1/" target="_blank" class="header-sub-link"><i class="fas fa-external-link-alt"></i> SäljaPro</a><a href="https://www.ikea.com/kr/ko/" target="_blank" class="header-sub-link"><i class="fas fa-home"></i> IKEA Home</a><a href="https://mhs-582.ikea.com/gateway/" target="_blank" class="header-sub-link"><i class="fas fa-desktop"></i> MHS</a><a href="https://piafacts.ikea.net/kr/en" target="_blank" class="header-sub-link"><i class="fas fa-info-circle"></i> PIA Facts</a></div></div><div class="header-right"><span>Ver 1.9.1 (CSV Direct Loading - 1900-01-00 Fix)</span><div id="data-update-date">data update : -</div></div></header>
   <div class="app-container">
-    <nav class="sidebar">
-      <div class="nav-item active" onclick="switchTab('info')" id="nav-info">Information <span class="nav-sub">사용 가이드</span></div>
-      <div class="nav-item" onclick="switchTab('search')" id="nav-search">Article Search <span class="nav-sub">제품 검색</span></div>
-      <div class="nav-item" onclick="switchTab('arrival')" id="nav-arrival">Goods Arrival <span class="nav-sub">도착 현황</span></div>
-      <div class="nav-item pc-only-nav" onclick="switchTab('market')" id="nav-market">Market Def. <span class="nav-sub">마켓 주소 검색</span></div>
-    </nav>
-
+    <nav class="sidebar"><div class="nav-item active" onclick="switchTab('info')" id="nav-info">Information <span class="nav-sub">사용 가이드</span></div><div class="nav-item" onclick="switchTab('search')" id="nav-search">Article Search <span class="nav-sub">제품 검색</span></div><div class="nav-item" onclick="switchTab('arrival')" id="nav-arrival">Goods Arrival <span class="nav-sub">도착 현황</span></div><div class="nav-item pc-only-nav" onclick="switchTab('market')" id="nav-market">Market Def. <span class="nav-sub">마켓 주소 검색</span></div></nav>
     <div class="content-area">
-      <div id="tab-info" class="tab-content active">
-        <div class="info-container">
-          <div class="info-card" style="display:block; text-align:center;">
-            <h1 style="color:var(--ikea-blue); margin-bottom:10px;">Welcome to STO582 Goods Arrival Tool</h1>
-            <p style="color:#555;">이 도구는 제품의 도착 예정 정보를 쉽고 빠르게 조회하기 위해 만들어졌습니다.<br><span class="bi-en">This tool is designed to quickly and easily check product arrival schedules.</span></p>
-            <div style="margin-top:20px; font-size:.9rem; color:#666; background:#f0f2f5; padding:15px; border-radius:8px; display:inline-block; text-align:left;">
-              <ul style="margin:0; padding-left:20px;">
-                <li>데이터는 매 영업일 기준, <strong>오후 3~4시</strong> 사이에 업데이트 됩니다.<br><span class="bi-en" style="font-size:.8em; color:#888;">Data is updated between 3 PM and 4 PM on business days.</span></li>
-                <li style="margin-top:8px;">데이터가 최종 업데이트 된 날짜는 우측 상단의 <strong>'data update'</strong> 날짜를 참고해주세요.<br><span class="bi-en" style="font-size:.8em; color:#888;">Please refer to the 'data update' date at the top right.</span></li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <div class="info-text-area">
-              <div class="info-title"><i class="fas fa-search"></i> 1. Article Search</div>
-              <div class="info-desc">
-                <p><strong>제품번호를 검색합니다. (쉼표나 띄어쓰기로 여러 개 동시 검색 가능)</strong><br><span class="bi-en">Search multiple item numbers by separating them with spaces or commas.</span></p>
-                <p><strong>요약 카드 기준</strong><br>Total Results는 발견된 배송 계획 전체입니다. Future Qty와 Next Delivery는 <strong>확정 입고 날짜(Confirmed Date)</strong>가 있는 계획만 계산합니다.<br><span class="bi-en">Total Results includes estimated plans. Future Qty and Next Delivery count confirmed arrival dates only.</span></p>
-                <hr style="border:0; border-top:1px dashed #ddd; margin:15px 0;">
-                <p><strong>Total</strong> : 총 배송 계획 수<br><span class="bi-en">Total number of delivery plans.</span></p>
-                <p><strong>Future Qty</strong> : 가장 가까운 확정 입고일의 수량 합계<br><span class="bi-en">Quantity on the nearest confirmed arrival date.</span></p>
-                <div style="background:#f9f9f9; padding:10px; border-radius:4px; margin-top:10px;">
-                  <div style="margin-bottom:5px;"><span class="color-box cb-green"></span> <strong>Green</strong> : 입고 확정<br><span class="bi-en" style="padding-left:17px;">Confirmed arrival.</span></div>
-                  <div style="margin-bottom:5px;"><span class="color-box cb-yellow"></span> <strong>Yellow</strong> : 배송 미확정 예상<br><span class="bi-en" style="padding-left:17px;">Estimated arrival week. Not counted in Future Qty / Next Delivery.</span></div>
-                  <div><span class="color-box cb-red"></span> <strong>Red</strong> : 미정<br><span class="bi-en" style="padding-left:17px;">Not fixed.</span></div>
-                </div>
-              </div>
-            </div>
-            <div class="info-visual-area" id="visual-search">
-              <img src="./Search.jpg" alt="Article Search Guide" onerror="this.parentElement.classList.add('error')">
-              <i class="fas fa-mobile-alt fallback-icon"></i><span class="fallback-icon" style="font-size:1rem; margin-top:10px;">Image Not Uploaded</span>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <div class="info-text-area">
-              <div class="info-title"><i class="fas fa-calendar-alt"></i> 2. Goods Arrival</div>
-              <div class="info-desc">
-                <p><strong>필터 및 정렬 기능</strong><br>날짜, HFB, PA 등으로 필터링이 가능하며, 표의 제목(Header)을 클릭하면 정렬이 가능합니다.<br><span class="bi-en">Filter and sort data by clicking table headers.</span></p>
-                <p><strong>복사 및 엑셀 다운로드</strong><br>현재 화면에 필터링된 결과만 복사하거나 엑셀로 다운받을 수 있습니다.<br><span class="bi-en">Copy or export currently filtered data only.</span></p>
-              </div>
-            </div>
-            <div class="info-visual-area" id="visual-arrival">
-              <img src="./Arrival.jpg" alt="Goods Arrival Guide" onerror="this.parentElement.classList.add('error')">
-              <i class="fas fa-table fallback-icon"></i><span class="fallback-icon" style="font-size:1rem; margin-top:10px;">Image Not Uploaded</span>
-            </div>
-          </div>
-
-          <div class="info-card pc-only-nav">
-            <div class="info-text-area">
-              <div class="info-title"><i class="fas fa-book"></i> 3. Market Definition</div>
-              <div class="info-desc">
-                <p><strong>통합 마켓 정의 검색</strong><br>우편번호 및 주소로 Market Definition(PMA/SMA)을 검색할 수 있습니다.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="info-card" style="display:block; background:#f0f8ff; border:1px solid #d6eaf8;">
-            <div class="info-title" style="margin-bottom:10px; color:#2c3e50; border:none;"><i class="fas fa-envelope"></i> Question & Request (문의사항)</div>
-            <p style="margin:0; font-size:1rem; color:#555;">문의 및 요청사항이 있다면 언제든지 <a href="mailto:dl.fi.582.kr@ingka.com" style="color:var(--ikea-blue); font-weight:bold;">dl.fi.582.kr@ingka.com</a> 으로 메일 주세요. 감사합니다.</p>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-search" class="tab-content">
-        <div class="search-card">
-          <div class="search-header">
-            <div class="search-title"><i class="fas fa-search"></i> 검색 (제품 번호)<span class="en-sub">Search Items</span></div>
-            <div class="status-badge" id="statusBadge1"><i class="fas fa-spinner fa-spin"></i> 연결 중...</div>
-          </div>
-          <div class="input-wrapper">
-            <input type="text" id="itemInput" placeholder="예: 80518273, 10271821"/>
-            <button class="btn-scan-trigger" onclick="startScanner()"><i class="fas fa-camera"></i></button>
-            <button class="btn-search" onclick="performSearch()">검색</button>
-          </div>
-          <div class="helper-text">
-            <i class="fas fa-lightbulb" style="color:var(--ikea-yellow);"></i> <strong>Tip:</strong><br>
-            <div style="margin-top:4px;">
-              띄어쓰기나 쉼표(,)를 통해 <strong>여러 제품을 한 번에 검색</strong>할 수 있습니다. 제품번호 클릭 시 PIA Facts로 연결됩니다.<br>
-              <span style="color:#888; font-size:.95em;">You can search multiple items at once using spaces or commas (,). Clicking an item number redirects to PIA Facts.</span>
-            </div>
-            <div class="mobile-only-tip">모바일에서는 카메라 아이콘을 눌러 바코드를 자동으로 입력할 수 있습니다.</div>
-          </div>
-          <div id="loading"><i class="fas fa-spinner fa-spin fa-2x"></i><br/>데이터 검색 중...</div>
-        </div>
-        <div id="resultSection" class="result-section">
-          <div id="statusBar" class="status-msg"></div>
-          <div class="dashboard">
-            <div class="dash-card image-card" id="dashImageCard" style="display:none;"></div>
-            <div class="dash-card"><h3 id="totalResults">-</h3><p>TOTAL RESULTS</p></div>
-            <div class="dash-card"><h3 id="futureDeliveryQty">0</h3><p>FUTURE QTY</p></div>
-            <div class="dash-card"><h3 id="nextDeliveryDate">-</h3><p>NEXT DELIVERY</p></div>
-          </div>
-          <div class="pc-table-view">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>HFB</th>
-                    <th>ITEM NO</th>
-                    <th>ITEM NAME</th>
-                    <th>SSD</th>
-                    <th>EDS</th>
-                    <th>PLANNED DATE</th>
-                    <th>QTY</th>
-                    <th>CONTAINER</th>
-                  </tr>
-                </thead>
-                <tbody id="pcResultBody"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="mobile-result-view"><div id="mobileScheduleList"></div></div>
-        </div>
-      </div>
-
-      <div id="tab-arrival" class="tab-content">
-        <div class="mobile-only-filters">
-          <div class="pf-group"><label class="pf-label">HFB</label><input type="text" id="pf-hfb" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div>
-          <div class="pf-group"><label class="pf-label">PA</label><input type="text" id="pf-pa" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div>
-        </div>
-
-        <div class="filter-tray-container">
-          <div class="tray-header">
-            <div class="tray-title"><i class="fas fa-filter"></i> Date Filter (Click to Toggle)</div>
-            <button class="btn-clear-filter" onclick="clearDateFilters()"><i class="fas fa-sync-alt"></i> Show All</button>
-          </div>
-          <div class="chip-container" id="dateFilterChips"></div>
-        </div>
-
-        <div class="pivot-header-wrapper">
-          <div class="pivot-header-area" style="margin-bottom:0;">
-            <h2 style="color:var(--ikea-blue); margin:0;"><i class="fas fa-calendar-alt"></i> Goods Arrival<span class="en-sub" style="font-size:.6em; display:block; margin-left:0; margin-top:5px;">오늘부터 미래의 도착 예정 물량을 보여줍니다.</span></h2>
-          </div>
-          <div class="pivot-controls-right">
-            <div class="status-badge" id="statusBadge2"><i class="fas fa-spinner fa-spin"></i> 연결 중...</div>
-            <button class="btn-copy" onclick="copyToClipboard()"><i class="fas fa-copy"></i> Copy</button>
-            <button class="btn-export-csv" onclick="exportToXlsx()"><i class="fas fa-file-excel"></i> Excel</button>
-          </div>
-        </div>
-
-        <div class="pivot-container">
-          <table class="pivot-table" id="pivotTable">
-            <thead id="pivotHead"></thead>
-            <tbody id="pivotBody"></tbody>
-          </table>
-          <div id="pivotEmptyState" class="empty-state">
-            <i class="fas fa-search" style="font-size:2rem; color:#ddd; margin-bottom:10px;"></i><br>
-            상단의 <strong>HFB</strong>, <strong>PA</strong>를 입력하거나<br><strong>날짜</strong>를 선택하면 결과가 표시됩니다.
-          </div>
-          <div id="pivotLoading" style="display:none; text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
-        </div>
-      </div>
-
-      <div id="tab-market" class="tab-content pc-only-nav" style="width:100%; align-items:flex-start; text-align:left;">
-        <div class="w-full max-w-2xl mx-auto mt-4">
-          <div id="md-loading-status" class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6 flex items-center justify-between hidden">
-            <div class="flex items-center">
-              <div class="md-loader mr-3"></div>
-              <div>
-                <span class="text-sm font-medium block">서버에서 데이터 파일을 불러오는 중입니다...</span>
-                <span class="text-xs text-blue-600">Loading data file from server...</span>
-              </div>
-            </div>
-          </div>
-
-          <div id="md-upload-section" class="hidden bg-white p-6 rounded-lg shadow-md mb-6 border border-gray-200">
-            <h2 class="text-lg font-semibold mb-1 flex items-center text-orange-600">
-              <i class="fas fa-exclamation-circle w-5 h-5 mr-2"></i> 데이터 파일 수동 연결
-            </h2>
-            <p class="text-xs text-orange-400 mb-2 ml-7">Manual Data File Connection</p>
-            <p class="text-sm text-gray-500 mb-1">자동으로 데이터 파일을 찾을 수 없습니다.<br><strong>FY26 Market Definition.csv</strong> 파일을 직접 업로드해주세요.</p>
-            <div class="flex items-center justify-center w-full">
-              <label for="md-dropzone-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                  <i class="fas fa-cloud-upload-alt w-8 h-8 mb-3 text-gray-400" style="font-size:2rem;"></i>
-                  <p class="mb-1 text-sm text-gray-500"><span class="font-semibold">클릭하여 파일 선택</span> 또는 드래그 앤 드롭</p>
-                  <p class="text-xs text-gray-400">Click to upload or drag and drop</p>
-                </div>
-                <input id="md-dropzone-file" type="file" class="hidden" accept=".csv" />
-              </label>
-            </div>
-          </div>
-
-          <div id="md-search-section" class="bg-white p-6 rounded-lg shadow-md mb-6 border border-gray-200 opacity-50 pointer-events-none transition-opacity">
-            <div class="flex justify-between items-center mb-4">
-              <div>
-                <h2 class="text-lg font-semibold flex items-center text-gray-800">
-                  <i class="fas fa-search w-5 h-5 mr-2 text-blue-600"></i> 검색 (우편번호 또는 주소)
-                </h2>
-                <p class="text-xs text-gray-400 ml-7">Search (Zip code or Address)</p>
-              </div>
-              <div class="text-right">
-                <span id="md-db-status-badge" class="bg-gray-200 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded border border-gray-300">데이터 대기중</span>
-                <p id="md-db-status-sub" class="text-[10px] text-gray-400 mt-1">Waiting for data</p>
-              </div>
-            </div>
-            <div class="relative flex gap-2">
-              <input type="text" id="md-input-keyword" class="block w-full p-4 pl-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-400" placeholder="우편번호(5자리) 또는 주소 (예: 남부순환로)">
-              <button type="button" id="md-search-btn" class="bg-blue-700 hover:bg-blue-800 text-white font-medium rounded-lg text-sm px-6 py-2 whitespace-nowrap focus:ring-4 focus:outline-none focus:ring-blue-300 flex flex-col justify-center items-center">
-                <span>검색</span>
-                <span class="text-[10px] opacity-80 font-light">Search</span>
-              </button>
-            </div>
-            <p class="mt-2 text-xs text-gray-500">💡 <strong>숫자 5자리</strong> 입력 시 즉시 조회, <strong>주소</strong> 입력 시 주소 찾기 창이 열립니다.<br><span class="text-gray-400 text-[11px] block mt-0.5">Instant lookup for 5-digit zip code, Address search popup for text input.</span></p>
-          </div>
-
-          <div id="md-result-container" class="hidden">
-            <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg shadow-md hover:shadow-lg transition-shadow">
-              <div id="md-selected-address-box" class="hidden mb-4 p-2 bg-white rounded border border-blue-100 text-sm text-gray-600 flex items-center">
-                <div>
-                  <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded mr-2">선택 주소</span>
-                  <span class="text-[10px] text-blue-400 mr-2 block">Selected Address</span>
-                </div>
-                <span id="md-display-selected-addr" class="font-medium"></span>
-              </div>
-              <div class="flex justify-between items-start mb-4">
-                <div>
-                  <p class="text-xs text-gray-500 uppercase tracking-wide font-bold">Market Name</p>
-                  <h3 id="md-res-market" class="text-2xl font-bold text-blue-900">-</h3>
-                </div>
-                <div class="text-right">
-                  <p id="md-pma-label" class="text-xs text-gray-500 uppercase tracking-wide font-bold">PMA (or SMA)</p>
-                  <span id="md-res-pma" class="inline-block bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-1 rounded">-</span>
-                </div>
-              </div>
-              <div class="border-t border-blue-200 my-3"></div>
-              <div class="mb-4">
-                <p class="text-xs text-gray-500 uppercase tracking-wide font-bold mb-1">Address (English)</p>
-                <p id="md-res-address" class="text-lg text-gray-800 font-medium">-</p>
-              </div>
-              <div class="mt-6">
-                <div class="flex items-center mb-2">
-                  <i class="fas fa-map w-4 h-4 mr-1 text-gray-500"></i>
-                  <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Location Map</span>
-                </div>
-                <div class="bg-gray-200 rounded-lg overflow-hidden shadow-inner border border-gray-300">
-                  <iframe id="md-map-frame" src="about:blank" allowfullscreen loading="lazy"></iframe>
-                </div>
-              </div>
-              <div class="mt-4 text-right">
-                <span class="text-xs text-gray-400">Postcode: <span id="md-res-postcode-val"></span></span>
-              </div>
-            </div>
-          </div>
-
-          <div id="md-error-message" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 text-center" role="alert">
-            <i class="fas fa-exclamation-triangle inline w-4 h-4 mr-1"></i>
-            <div><span class="font-medium">검색 결과가 없습니다.</span> 우편번호(<span id="md-err-code" class="font-bold"></span>)를 찾을 수 없습니다.</div>
-            <div class="text-xs text-red-600 mt-1 opacity-80">No results found. The postcode does not exist in the database.</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div id="tab-info" class="tab-content active"><div class="info-container"><div class="info-card" style="display:block; text-align:center;"><h1 style="color:var(--ikea-blue); margin-bottom:10px;">Welcome to STO582 Goods Arrival Tool</h1><p style="color:#555;">이 도구는 제품의 도착 예정 정보를 쉽고 빠르게 조회하기 위해 만들어졌습니다.<br><span class="bi-en">This tool is designed to quickly and easily check product arrival schedules.</span></p><div style="margin-top:20px; font-size:.9rem; color:#666; background:#f0f2f5; padding:15px; border-radius:8px; display:inline-block; text-align:left;"><ul style="margin:0; padding-left:20px;"><li>데이터는 매 영업일 기준, <strong>오후 3~4시</strong> 사이에 업데이트 됩니다.<br><span class="bi-en" style="font-size:.8em; color:#888;">Data is updated between 3 PM and 4 PM on business days.</span></li><li style="margin-top:8px;">데이터가 최종 업데이트 된 날짜는 우측 상단의 <strong>'data update'</strong> 날짜를 참고해주세요.<br><span class="bi-en" style="font-size:.8em; color:#888;">Please refer to the 'data update' date at the top right.</span></li></ul></div></div><div class="info-card"><div class="info-text-area"><div class="info-title"><i class="fas fa-search"></i> 1. Article Search</div><div class="info-desc"><p><strong>제품번호를 검색합니다. (쉼표나 띄어쓰기로 여러 개 동시 검색 가능)</strong><br><span class="bi-en">Search multiple item numbers by separating them with spaces or commas.</span></p><p><strong>요약 카드 기준</strong><br>Total Results는 발견된 배송 계획 전체입니다. Future Qty와 Next Delivery는 <strong>확정 입고 날짜(Confirmed Date)</strong>가 있는 계획만 계산합니다.<br><span class="bi-en">Total Results includes estimated plans. Future Qty and Next Delivery count confirmed arrival dates only.</span></p><hr style="border:0; border-top:1px dashed #ddd; margin:15px 0;"><p><strong>Total</strong> : 총 배송 계획 수<br><span class="bi-en">Total number of delivery plans.</span></p><p><strong>Future Qty</strong> : 가장 가까운 확정 입고일의 수량 합계<br><span class="bi-en">Quantity on the nearest confirmed arrival date.</span></p><div style="background:#f9f9f9; padding:10px; border-radius:4px; margin-top:10px;"><div style="margin-bottom:5px;"><span class="color-box cb-green"></span> <strong>Green</strong> : 입고 확정<br><span class="bi-en" style="padding-left:17px;">Confirmed arrival.</span></div><div style="margin-bottom:5px;"><span class="color-box cb-yellow"></span> <strong>Yellow</strong> : 배송 미확정 예상<br><span class="bi-en" style="padding-left:17px;">Estimated arrival week. Not counted in Future Qty / Next Delivery.</span></div><div><span class="color-box cb-red"></span> <strong>Red</strong> : 미정<br><span class="bi-en" style="padding-left:17px;">Not fixed.</span></div></div></div></div><div class="info-visual-area" id="visual-search"><img src="./Search.jpg" alt="Article Search Guide" onerror="this.parentElement.classList.add('error')"><i class="fas fa-mobile-alt fallback-icon"></i><span class="fallback-icon" style="font-size:1rem; margin-top:10px;">Image Not Uploaded</span></div></div><div class="info-card"><div class="info-text-area"><div class="info-title"><i class="fas fa-calendar-alt"></i> 2. Goods Arrival</div><div class="info-desc"><p><strong>필터 및 정렬 기능</strong><br>날짜, HFB, PA 등으로 필터링이 가능하며, 표의 제목(Header)을 클릭하면 정렬이 가능합니다.<br><span class="bi-en">Filter and sort data by clicking table headers.</span></p><p><strong>복사 및 엑셀 다운로드</strong><br>현재 화면에 필터링된 결과만 복사하거나 엑셀로 다운받을 수 있습니다.<br><span class="bi-en">Copy or export currently filtered data only.</span></p></div></div><div class="info-visual-area" id="visual-arrival"><img src="./Arrival.jpg" alt="Goods Arrival Guide" onerror="this.parentElement.classList.add('error')"><i class="fas fa-table fallback-icon"></i><span class="fallback-icon" style="font-size:1rem; margin-top:10px;">Image Not Uploaded</span></div></div><div class="info-card pc-only-nav"><div class="info-text-area"><div class="info-title"><i class="fas fa-book"></i> 3. Market Definition</div><div class="info-desc"><p><strong>통합 마켓 정의 검색</strong><br>우편번호 및 주소로 Market Definition(PMA/SMA)을 검색할 수 있습니다.</p></div></div></div><div class="info-card" style="display:block; background:#f0f8ff; border:1px solid #d6eaf8;"><div class="info-title" style="margin-bottom:10px; color:#2c3e50; border:none;"><i class="fas fa-envelope"></i> Question & Request (문의사항)</div><p style="margin:0; font-size:1rem; color:#555;">문의 및 요청사항이 있다면 언제든지 <a href="mailto:dl.fi.582.kr@ingka.com" style="color:var(--ikea-blue); font-weight:bold;">dl.fi.582.kr@ingka.com</a> 으로 메일 주세요. 감사합니다.</p></div></div></div>
+      <div id="tab-search" class="tab-content"><div class="search-card"><div class="search-header"><div class="search-title"><i class="fas fa-search"></i> 검색 (제품 번호)<span class="en-sub">Search Items</span></div><div class="status-badge" id="statusBadge1"><i class="fas fa-spinner fa-spin"></i> 연결 중...</div></div><div class="input-wrapper"><input type="text" id="itemInput" placeholder="예: 80518273, 10271821"/><button class="btn-scan-trigger" onclick="startScanner()"><i class="fas fa-camera"></i></button><button class="btn-search" onclick="performSearch()">검색</button></div><div class="helper-text"><i class="fas fa-lightbulb" style="color:var(--ikea-yellow);"></i> <strong>Tip:</strong><br><div style="margin-top:4px;">띄어쓰기나 쉼표(,)를 통해 <strong>여러 제품을 한 번에 검색</strong>할 수 있습니다. 제품번호 클릭 시 PIA Facts로 연결됩니다.<br><span style="color:#888; font-size:.95em;">You can search multiple items at once using spaces or commas (,). Clicking an item number redirects to PIA Facts.</span></div><div class="mobile-only-tip">모바일에서는 카메라 아이콘을 눌러 바코드를 자동으로 입력할 수 있습니다.</div></div><div id="loading"><i class="fas fa-spinner fa-spin fa-2x"></i><br/>데이터 검색 중...</div></div><div id="resultSection" class="result-section"><div id="statusBar" class="status-msg"></div><div class="dashboard"><div class="dash-card image-card" id="dashImageCard" style="display:none;"></div><div class="dash-card"><h3 id="totalResults">-</h3><p>TOTAL RESULTS</p></div><div class="dash-card"><h3 id="futureDeliveryQty">0</h3><p>FUTURE QTY</p></div><div class="dash-card"><h3 id="nextDeliveryDate">-</h3><p>NEXT DELIVERY</p></div></div><div class="pc-table-view"><div class="table-wrap"><table><thead><tr><th>HFB</th><th>ITEM NO</th><th>ITEM NAME</th><th>SSD</th><th>EDS</th><th>PLANNED DATE</th><th>QTY</th><th>CONTAINER</th></tr></thead><tbody id="pcResultBody"></tbody></table></div></div><div class="mobile-result-view"><div id="mobileScheduleList"></div></div></div></div>
+      <div id="tab-arrival" class="tab-content"><div class="mobile-only-filters"><div class="pf-group"><label class="pf-label">HFB</label><input type="text" id="pf-hfb" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div><div class="pf-group"><label class="pf-label">PA</label><input type="text" id="pf-pa" class="pf-input" placeholder="All" onkeyup="debounceFilter()"></div></div><div class="filter-tray-container"><div class="tray-header"><div class="tray-title"><i class="fas fa-filter"></i> Date Filter (Click to Toggle)</div><button class="btn-clear-filter" onclick="clearDateFilters()"><i class="fas fa-sync-alt"></i> Show All</button></div><div class="chip-container" id="dateFilterChips"></div></div><div class="pivot-header-wrapper"><div class="pivot-header-area" style="margin-bottom:0;"><h2 style="color:var(--ikea-blue); margin:0;"><i class="fas fa-calendar-alt"></i> Goods Arrival<span class="en-sub" style="font-size:.6em; display:block; margin-left:0; margin-top:5px;">오늘부터 미래의 도착 예정 물량을 보여줍니다.</span></h2></div><div class="pivot-controls-right"><div class="status-badge" id="statusBadge2"><i class="fas fa-spinner fa-spin"></i> 연결 중...</div><button class="btn-copy" onclick="copyToClipboard()"><i class="fas fa-copy"></i> Copy</button><button class="btn-export-csv" onclick="exportToXlsx()"><i class="fas fa-file-excel"></i> Excel</button></div></div><div class="pivot-container"><table class="pivot-table" id="pivotTable"><thead id="pivotHead"></thead><tbody id="pivotBody"></tbody></table><div id="pivotEmptyState" class="empty-state"><i class="fas fa-search" style="font-size:2rem; color:#ddd; margin-bottom:10px;"></i><br>상단의 <strong>HFB</strong>, <strong>PA</strong>를 입력하거나<br><strong>날짜</strong>를 선택하면 결과가 표시됩니다.</div><div id="pivotLoading" style="display:none; text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div></div></div>
+      <div id="tab-market" class="tab-content pc-only-nav" style="width:100%; align-items:flex-start; text-align:left;"><div class="w-full max-w-2xl mx-auto mt-4"><div id="md-loading-status" class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6 flex items-center justify-between hidden"><div class="flex items-center"><div class="md-loader mr-3"></div><div><span class="text-sm font-medium block">서버에서 데이터 파일을 불러오는 중입니다...</span><span class="text-xs text-blue-600">Loading data file from server...</span></div></div></div><div id="md-upload-section" class="hidden bg-white p-6 rounded-lg shadow-md mb-6 border border-gray-200"><h2 class="text-lg font-semibold mb-1 flex items-center text-orange-600"><i class="fas fa-exclamation-circle w-5 h-5 mr-2"></i> 데이터 파일 수동 연결</h2><p class="text-xs text-orange-400 mb-2 ml-7">Manual Data File Connection</p><p class="text-sm text-gray-500 mb-1">자동으로 데이터 파일을 찾을 수 없습니다.<br><strong>FY26 Market Definition.csv</strong> 파일을 직접 업로드해주세요.</p><div class="flex items-center justify-center w-full"><label for="md-dropzone-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"><div class="flex flex-col items-center justify-center pt-5 pb-6"><i class="fas fa-cloud-upload-alt w-8 h-8 mb-3 text-gray-400" style="font-size:2rem;"></i><p class="mb-1 text-sm text-gray-500"><span class="font-semibold">클릭하여 파일 선택</span> 또는 드래그 앤 드롭</p><p class="text-xs text-gray-400">Click to upload or drag and drop</p></div><input id="md-dropzone-file" type="file" class="hidden" accept=".csv" /></label></div></div><div id="md-search-section" class="bg-white p-6 rounded-lg shadow-md mb-6 border border-gray-200 opacity-50 pointer-events-none transition-opacity"><div class="flex justify-between items-center mb-4"><div><h2 class="text-lg font-semibold flex items-center text-gray-800"><i class="fas fa-search w-5 h-5 mr-2 text-blue-600"></i> 검색 (우편번호 또는 주소)</h2><p class="text-xs text-gray-400 ml-7">Search (Zip code or Address)</p></div><div class="text-right"><span id="md-db-status-badge" class="bg-gray-200 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded border border-gray-300">데이터 대기중</span><p id="md-db-status-sub" class="text-[10px] text-gray-400 mt-1">Waiting for data</p></div></div><div class="relative flex gap-2"><input type="text" id="md-input-keyword" class="block w-full p-4 pl-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-400" placeholder="우편번호(5자리) 또는 주소 (예: 남부순환로)"><button type="button" id="md-search-btn" class="bg-blue-700 hover:bg-blue-800 text-white font-medium rounded-lg text-sm px-6 py-2 whitespace-nowrap focus:ring-4 focus:outline-none focus:ring-blue-300 flex flex-col justify-center items-center"><span>검색</span><span class="text-[10px] opacity-80 font-light">Search</span></button></div><p class="mt-2 text-xs text-gray-500">💡 <strong>숫자 5자리</strong> 입력 시 즉시 조회, <strong>주소</strong> 입력 시 주소 찾기 창이 열립니다.<br><span class="text-gray-400 text-[11px] block mt-0.5">Instant lookup for 5-digit zip code, Address search popup for text input.</span></p></div><div id="md-result-container" class="hidden"><div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg shadow-md hover:shadow-lg transition-shadow"><div id="md-selected-address-box" class="hidden mb-4 p-2 bg-white rounded border border-blue-100 text-sm text-gray-600 flex items-center"><div><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded mr-2">선택 주소</span><span class="text-[10px] text-blue-400 mr-2 block">Selected Address</span></div><span id="md-display-selected-addr" class="font-medium"></span></div><div class="flex justify-between items-start mb-4"><div><p class="text-xs text-gray-500 uppercase tracking-wide font-bold">Market Name</p><h3 id="md-res-market" class="text-2xl font-bold text-blue-900">-</h3></div><div class="text-right"><p id="md-pma-label" class="text-xs text-gray-500 uppercase tracking-wide font-bold">PMA (or SMA)</p><span id="md-res-pma" class="inline-block bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-1 rounded">-</span></div></div><div class="border-t border-blue-200 my-3"></div><div class="mb-4"><p class="text-xs text-gray-500 uppercase tracking-wide font-bold mb-1">Address (English)</p><p id="md-res-address" class="text-lg text-gray-800 font-medium">-</p></div><div class="mt-6"><div class="flex items-center mb-2"><i class="fas fa-map w-4 h-4 mr-1 text-gray-500"></i><span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Location Map</span></div><div class="bg-gray-200 rounded-lg overflow-hidden shadow-inner border border-gray-300"><iframe id="md-map-frame" src="about:blank" allowfullscreen loading="lazy"></iframe></div></div><div class="mt-4 text-right"><span class="text-xs text-gray-400">Postcode: <span id="md-res-postcode-val"></span></span></div></div></div><div id="md-error-message" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 text-center" role="alert"><i class="fas fa-exclamation-triangle inline w-4 h-4 mr-1"></i><div><span class="font-medium">검색 결과가 없습니다.</span> 우편번호(<span id="md-err-code" class="font-bold"></span>)를 찾을 수 없습니다.</div><div class="text-xs text-red-600 mt-1 opacity-80">No results found. The postcode does not exist in the database.</div></div></div></div></div></div>
   </div>
-
   <footer><strong>STO582 Tool</strong> — Automated FI</footer>
   <div id="image-tooltip"><div class="img-wrapper"></div><div class="info-wrapper"></div></div>
-
   <script>
+
     const DATA_FILE_URL = './SSS%20ONLY_Goods%20Arrival.csv';
     const DB_NAME = 'STO582_CacheDB_CSV_v1';
     const STORE_NAME = 'arrival_data';
     const CACHE_KEY = 'csvData';
     const TARGET_CSV_FILENAME = 'FY26 Market Definition.csv';
-
-    const COL = {
-      ItemNo: 31,
-      ItemName: 32,
-      PA: 30,
-      HFB: 29,
-      SSD: 39,
-      EDS: 40,
-      Qty: 33,
-      Status: 9,
-      Container: 35,
-      ConfirmedDate: 36,
-      ExpectedDate: 14
-    };
-
+    const COL = { ItemNo:31, ItemName:32, PA:30, HFB:29, SSD:39, EDS:40, Qty:33, Status:9, Container:35, ConfirmedDate:36, ExpectedDate:14 };
+    const debounce = (fn,t=300)=>{ let tm; return (...a)=>{ clearTimeout(tm); tm=setTimeout(()=>fn(...a),t); }; };
+    const safeNum = v => Number.isFinite(+v) ? +v : 0;
     let data = [];
     let allPivotRows = [];
     let displayedPivotRows = [];
@@ -523,1143 +169,85 @@
     let exportVisibleDates = [];
     let exportShowNotFixed = true;
     let initialLoadComplete = false;
-
     const imageCache = new Map();
     let hoverTimeout = null;
     let currentHoverItem = null;
-    const tooltipEl = document.getElementById('image-tooltip');
-
     let mdData = [];
     let isMdLoaded = false;
+    let html5QrcodeScanner = null;
+    const tooltipEl = document.getElementById('image-tooltip');
+    const mdLoadingStatus=document.getElementById('md-loading-status'), mdUploadSection=document.getElementById('md-upload-section'), mdSearchSection=document.getElementById('md-search-section'), mdDbStatusBadge=document.getElementById('md-db-status-badge'), mdDbStatusSub=document.getElementById('md-db-status-sub'), mdFileInput=document.getElementById('md-dropzone-file'), mdSearchBtn=document.getElementById('md-search-btn'), mdInputKeyword=document.getElementById('md-input-keyword'), mdResultContainer=document.getElementById('md-result-container'), mdErrorMessage=document.getElementById('md-error-message'), mdErrCodeSpan=document.getElementById('md-err-code'), mdResMarket=document.getElementById('md-res-market'), mdResPMA=document.getElementById('md-res-pma'), mdPmaLabel=document.getElementById('md-pma-label'), mdResAddress=document.getElementById('md-res-address'), mdResPostcodeVal=document.getElementById('md-res-postcode-val'), mdMapFrame=document.getElementById('md-map-frame'), mdSelectedAddressBox=document.getElementById('md-selected-address-box'), mdDisplaySelectedAddr=document.getElementById('md-display-selected-addr');
 
-    function setProgress(pct){
-      const bar = document.getElementById('load-progress-bar');
-      const wrap = document.getElementById('load-progress-bar-wrap');
-      if(!bar || !wrap) return;
-      wrap.style.display = 'block';
-      bar.style.width = pct + '%';
-      if(pct >= 100){
-        setTimeout(()=>{
-          wrap.style.display = 'none';
-          bar.style.width = '0%';
-        },600);
-      }
-    }
-
-    const debounce = (fn,t=300)=>{ let tm; return (...a)=>{ clearTimeout(tm); tm=setTimeout(()=>fn(...a),t); }; };
-    const safeNum = v => Number.isFinite(+v) ? +v : 0;
-    const pad2 = n => String(n).padStart(2,'0');
-    const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-
-    function getWeekNumber(d){
-      const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      const dayNr = (target.getUTCDay()+6)%7;
-      target.setUTCDate(target.getUTCDate()-dayNr+3);
-      const firstThu = new Date(Date.UTC(target.getUTCFullYear(),0,4));
-      return 1 + Math.round((target-firstThu)/(7*24*3600*1000));
-    }
-
+    function isInvalidDateObject(d){ return !(d instanceof Date) || isNaN(d.getTime()); }
+    const INVALID_DATE_STRINGS = new Set(['1900-01-00','1900/01/00','0000-00-00','0000/00/00']);
+    function isPlaceholderDateString(s){ return INVALID_DATE_STRINGS.has(String(s || '').trim()); }
     function excelToDate(v){
       if(v === null || v === undefined || v === '') return null;
-
       if(typeof v === 'number'){
-        if(v > 10000 && v < 60000){
-          const d = new Date(Math.round((v - 25569) * 86400 * 1000) + 43200000);
-          return isNaN(d) ? null : d;
-        }
-        if(v >= 19000101 && v <= 29991231){
-          const s = String(v);
-          return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
-        }
+        if(v <= 0) return null;
+        if(v > 10000 && v < 60000){ const d = new Date(Math.round((v - 25569) * 86400 * 1000) + 43200000); return isInvalidDateObject(d) ? null : d; }
+        if(v >= 19000101 && v <= 29991231){ const s = String(v); if(s.slice(4,8)==='0100') return null; const d = new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`); return isInvalidDateObject(d)?null:d; }
       }
-
       if(typeof v === 'string'){
         const s = v.trim();
-        if(/^\d{8}$/.test(s)) return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`);
-        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if(m) return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
-        const d = new Date(s);
-        return isNaN(d) ? null : d;
-      }
-
-      if(v instanceof Date) return v;
-      return null;
-    }
-
-    function parseExcelDate(value){
-      const d = excelToDate(value);
-      return d ? ymd(d) : '-';
-    }
-
-    function openDB(){
-      return new Promise((resolve,reject)=>{
-        const req = indexedDB.open(DB_NAME,1);
-        req.onupgradeneeded = e => {
-          const db = e.target.result;
-          if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-        };
-        req.onsuccess = e => resolve(e.target.result);
-        req.onerror = e => reject(e.target.error);
-      });
-    }
-
-    function saveToCache(key,val){
-      return openDB().then(db => new Promise((res,rej)=>{
-        const tx = db.transaction(STORE_NAME,'readwrite');
-        tx.objectStore(STORE_NAME).put(val,key);
-        tx.oncomplete = ()=>res();
-        tx.onerror = ()=>rej();
-      }));
-    }
-
-    function loadFromCache(key){
-      return openDB().then(db => new Promise((res,rej)=>{
-        const tx = db.transaction(STORE_NAME,'readonly');
-        const req = tx.objectStore(STORE_NAME).get(key);
-        req.onsuccess = ()=>res(req.result);
-        req.onerror = ()=>rej();
-      }));
-    }
-
-    function parseCsvText(text){
-      const parsed = Papa.parse(text, {
-        header: false,
-        skipEmptyLines: true
-      });
-
-      if(parsed.errors && parsed.errors.length){
-        console.warn('CSV parse warnings:', parsed.errors);
-      }
-
-      const rows = parsed.data || [];
-      let startIndex = 1;
-
-      for(let i=0; i<Math.min(20, rows.length); i++){
-        if(!rows[i]) continue;
-        const v = String(rows[i][COL.ItemNo] || '').toLowerCase().replace(/\s/g,'');
-        if(v.includes('artno') || v.includes('item')){
-          startIndex = i + 1;
-          break;
+        if(!s || isPlaceholderDateString(s)) return null;
+        if(/^\d{8}$/.test(s)){
+          if(s.slice(4,8)==='0100') return null;
+          const d = new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`); return isInvalidDateObject(d)?null:d;
         }
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m){ if(m[2]==='01' && m[3]==='00') return null; const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`); return isInvalidDateObject(d)?null:d; }
+        const m2 = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/); if(m2){ if(m2[2]==='01' && m2[3]==='00') return null; const d = new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`); return isInvalidDateObject(d)?null:d; }
+        const d = new Date(s); return isInvalidDateObject(d)?null:d;
       }
-
-      const out = [];
-      for(let i=startIndex; i<rows.length; i++){
-        const r = rows[i];
-        if(!r) continue;
-
-        const itemNo = String(r[COL.ItemNo] ?? '').trim();
-        if(!itemNo || itemNo.length < 4) continue;
-
-        const lc = itemNo.toLowerCase();
-        if(lc.includes('art') || lc.includes('item')) continue;
-
-        out.push({
-          itemNo,
-          itemName: r[COL.ItemName] ?? '',
-          pa: r[COL.PA] ?? '',
-          hfb: r[COL.HFB] ?? '',
-          ssd: r[COL.SSD] ?? '',
-          eds: r[COL.EDS] ?? '',
-          qty: safeNum(r[COL.Qty]),
-          status: r[COL.Status] ?? '',
-          container: String(r[COL.Container] ?? '').trim(),
-          confirmedDate: r[COL.ConfirmedDate] ?? '',
-          expectedDate: r[COL.ExpectedDate] ?? ''
-        });
-      }
-
-      return out;
+      return v instanceof Date && !isInvalidDateObject(v) ? v : null;
     }
-
-    function buildPivotMain(list){
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const pivotMap = {};
-      const uniqueDates = new Set();
-      let hasNotFixed = false;
-
-      for(const row of list){
-        if(!row.itemNo) continue;
-
-        const conf = excelToDate(row.confirmedDate);
-        const qty = safeNum(row.qty);
-
-        if(!pivotMap[row.itemNo]){
-          pivotMap[row.itemNo] = {
-            hfb: row.hfb || '',
-            pa: row.pa || '',
-            itemNo: row.itemNo,
-            itemName: row.itemName || '',
-            ssdRaw: row.ssd || '',
-            edsRaw: row.eds || '',
-            dates: {},
-            notFixedQty: 0
-          };
-        }
-
-        if(conf){
-          const d = new Date(conf);
-          d.setHours(0,0,0,0);
-          if(d < today) continue;
-          const s = ymd(d);
-          pivotMap[row.itemNo].dates[s] = (pivotMap[row.itemNo].dates[s] || 0) + qty;
-          uniqueDates.add(s);
-        } else {
-          pivotMap[row.itemNo].notFixedQty += qty;
-          hasNotFixed = true;
-        }
-      }
-
-      return {
-        pivotRows: Object.values(pivotMap).sort((a,b)=>{
-          if(a.hfb !== b.hfb) return String(a.hfb).localeCompare(String(b.hfb));
-          return String(a.pa).localeCompare(String(b.pa));
-        }),
-        sortedDates: Array.from(uniqueDates).sort(),
-        hasNotFixed
-      };
-    }
-
-    async function fetchAndParse(){
-      setProgress(10);
-      const resp = await fetch(DATA_FILE_URL, { cache:'no-store' });
-      if(!resp.ok) throw new Error('CSV fetch failed: ' + resp.status);
-      setProgress(40);
-
-      const eTag = resp.headers.get('ETag');
-      const lastMod = resp.headers.get('Last-Modified');
-      const sha = eTag || lastMod || 'unknown';
-
-      const text = await resp.text();
-      setProgress(70);
-
-      const parsedRows = parseCsvText(text);
-      const pivot = buildPivotMain(parsedRows);
-
-      let finalDateMs = null;
-      if(lastMod){
-        const parsed = new Date(lastMod);
-        if(!isNaN(parsed)) finalDateMs = parsed.getTime();
-      }
-
-      const updateDateStr = finalDateMs ? ymd(new Date(finalDateMs)) : '-';
-      setProgress(90);
-
-      return {
-        sha,
-        data: parsedRows,
-        pivotRows: pivot.pivotRows,
-        sortedDates: pivot.sortedDates,
-        hasNotFixed: pivot.hasNotFixed,
-        finalDateMs,
-        updateDateStr,
-        source: 'csv'
-      };
-    }
-
-    function applyMetaDate(finalDateMs, updateDateStr){
-      document.getElementById('data-update-date').innerText = `data update : ${updateDateStr || '-'}`;
-      document.getElementById('stale-alert').style.display = 'none';
-      if(finalDateMs){
-        const diffHours = (Date.now() - Number(finalDateMs)) / (1000*60*60);
-        if(diffHours > 72){
-          document.getElementById('stale-alert').style.display = 'block';
-        }
-      }
-    }
-
-    function applyPivotResult(pivotRows, sortedDates, hasNotFixed){
-      allPivotRows = pivotRows || [];
-      globalSortedDates = sortedDates || [];
-      renderDateFilterChips(globalSortedDates, !!hasNotFixed);
-      if(document.getElementById('tab-arrival').classList.contains('active')){
-        updateTableDisplay();
-      }
-    }
-
-    function applyDataset(pack){
-      data = pack.data || [];
-      applyMetaDate(pack.finalDateMs, pack.updateDateStr);
-      updateStatus('connected');
-      applyPivotResult(pack.pivotRows, pack.sortedDates, pack.hasNotFixed);
-    }
-
-    window.onload = async function(){
-      try{
-        updateStatus('loading');
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-
-        if(!urlParams.has('hfb')){
-          const saved = localStorage.getItem('last_hfb');
-          if(saved && document.getElementById('pf-hfb')){
-            document.getElementById('pf-hfb').value = saved;
-          }
-        } else {
-          if(document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value = urlParams.get('hfb') || '';
-          if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
-        }
-
-        let cached = null;
-        try { cached = await loadFromCache(CACHE_KEY); } catch(_){ }
-
-        if(cached && Array.isArray(cached.data) && cached.data.length > 0){
-          applyDataset(cached);
-          setProgress(100);
-          initialLoadComplete = true;
-          finishLoading(tabParam, urlParams);
-          checkAndRefreshInBackground(cached.sha);
-          return;
-        }
-
-        const fresh = await fetchAndParse();
-        applyDataset(fresh);
-        setProgress(100);
-        initialLoadComplete = true;
-        finishLoading(tabParam, urlParams);
-        saveToCache(CACHE_KEY, fresh).catch(console.warn);
-
-      }catch(err){
-        console.error('Load Error:', err);
-        updateStatus('error');
-        setProgress(100);
-      }
-    };
-
-    async function checkAndRefreshInBackground(cachedSha){
-      try{
-        const head = await fetch(DATA_FILE_URL, { method:'HEAD', cache:'no-store' });
-        if(!head.ok) return;
-
-        const serverSha = head.headers.get('ETag') || head.headers.get('Last-Modified') || 'unknown';
-        if(serverSha === cachedSha) return;
-
-        const fresh = await fetchAndParse();
-        applyDataset(fresh);
-        saveToCache(CACHE_KEY, fresh).catch(console.warn);
-        rerunSearchIfVisible();
-
-      }catch(e){
-        console.warn('Background refresh failed:', e);
-      }
-    }
-
-    function rerunSearchIfVisible(){
-      const currentInput = document.getElementById('itemInput')?.value?.trim();
-      if(document.getElementById('resultSection').style.display === 'block' && currentInput){
-        performSearch(true);
-      }
-    }
-
-    function finishLoading(tabParam, urlParams){
-      if(tabParam === 'arrival') switchTab('arrival');
-      else if(tabParam === 'search'){
-        switchTab('search');
-        if(urlParams.has('itemNo')){
-          document.getElementById('itemInput').value = urlParams.get('itemNo');
-          performSearch();
-        }
-      } else if(tabParam === 'market') {
-        switchTab('market');
-      }
-    }
-
-    function updateStatus(status){
-      const b1 = document.getElementById('statusBadge1');
-      const b2 = document.getElementById('statusBadge2');
-
-      if(status === 'connected'){
-        b1.innerHTML = '<i class="fas fa-check-circle"></i>';
-        b1.className = 'status-badge connected';
-        b2.innerHTML = '<i class="fas fa-check-circle"></i>';
-        b2.className = 'status-badge connected';
-      } else if(status === 'loading'){
-        b1.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
-        b1.className = 'status-badge';
-        b2.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로딩 중...';
-        b2.className = 'status-badge';
-      } else {
-        b1.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
-        b1.className = 'status-badge error';
-        b2.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 연결 실패';
-        b2.className = 'status-badge error';
-      }
-    }
-
-    function switchTab(tabName){
-      document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
-
-      const nav = document.getElementById('nav-' + tabName);
-      if(nav) nav.classList.add('active');
-
-      const tab = document.getElementById('tab-' + tabName);
-      if(tab) tab.classList.add('active');
-
-      if(tabName === 'arrival'){
-        if(allPivotRows.length > 0) updateTableDisplay();
-        else if(data.length > 0) processPivotData(data);
-      } else if(tabName === 'market'){
-        attemptAutoLoadMarketData();
-      }
-    }
-
-    document.getElementById('itemInput').addEventListener('keypress', e=>{
-      if(e.key === 'Enter') performSearch();
-    });
-
-    function performSearch(isRefreshOnly=false){
-      const raw = document.getElementById('itemInput').value.trim();
-      if(!raw){
-        if(!isRefreshOnly) alert('제품번호를 입력해주세요.');
-        return;
-      }
-
-      localStorage.setItem('last_search_item', raw);
-      const targets = raw.split(/[\s,]+/).map(t=>t.replace(/[^0-9A-Za-z]/g,'').toLowerCase()).filter(Boolean);
-      if(!targets.length) return;
-
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('resultSection').style.display = 'none';
-
-      setTimeout(()=>{
-        const results = searchData(targets);
-        displayResults(results);
-        document.getElementById('loading').style.display = 'none';
-      },50);
-    }
-
-    function determinePlanned(row){
-      const confDate = excelToDate(row.confirmedDate);
-      const expDate = excelToDate(row.expectedDate);
-
-      if(confDate){
-        const dd = new Date(confDate);
-        dd.setHours(0,0,0,0);
-        return {
-          type:'confirmed',
-          dateObj: dd,
-          confirmedDateObj: dd,
-          label: `<span class="date-badge confirmed">${ymd(dd)}</span>`
-        };
-      }
-
-      if(expDate){
-        const dd = new Date(expDate);
-        dd.setHours(0,0,0,0);
-        return {
-          type:'estimated',
-          dateObj: null,
-          confirmedDateObj: null,
-          estimatedDateObj: dd,
-          label: `<span class="date-badge estimated">WK${getWeekNumber(dd)} 예상</span>`
-        };
-      }
-
-      const statusTxt = row.status ? String(row.status).toUpperCase() : '미정';
-      return {
-        type:'tbd',
-        dateObj:null,
-        confirmedDateObj:null,
-        label:`<span class="date-badge tbd">${statusTxt}</span>`
-      };
-    }
-
-    function searchData(targets){
-      const grouped = new Map();
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const cleanTargets = targets.map(t=>({
-        raw: t,
-        cleaned: t.replace(/^0+(?=\d)/,'')
-      }));
-
-      for(let i=0; i<data.length; i++){
-        const row = data[i];
-        const itemNo = String(row.itemNo || '').replace(/\s+/g,'').toLowerCase();
-        const cleanNo = itemNo.replace(/^0+(?=\d)/,'');
-        const cont = String(row.container || '').replace(/[^a-zA-Z0-9]/g,'').toLowerCase();
-
-        let isMatch = false;
-        for(let j=0; j<cleanTargets.length; j++){
-          const t = cleanTargets[j];
-          if((cleanNo && cleanNo.includes(t.cleaned)) || (itemNo && itemNo.includes(t.raw)) || (cont && cont.includes(t.raw))){
-            isMatch = true;
-            break;
-          }
-        }
-
-        if(!isMatch) continue;
-
-        const plan = determinePlanned(row);
-        if(plan.type === 'confirmed' && plan.confirmedDateObj && plan.confirmedDateObj < today) continue;
-
-        const container = row.container || '배송준비중';
-        const keyStr = plan.type === 'confirmed'
-          ? ymd(plan.confirmedDateObj)
-          : (plan.type === 'estimated' ? `WK_${getWeekNumber(plan.estimatedDateObj)}` : 'TBD');
-
-        const key = `${row.itemNo}__${container}__${keyStr}`;
-        const qty = safeNum(row.qty);
-
-        if(grouped.has(key)){
-          grouped.get(key).quantity += qty;
-        } else {
-          grouped.set(key,{
-            hfb: row.hfb,
-            itemNo: row.itemNo,
-            itemName: row.itemName,
-            ssdRaw: row.ssd,
-            edsRaw: row.eds,
-            plannedDateStr: plan.label,
-            plannedDateObj: plan.confirmedDateObj || null,
-            planType: plan.type,
-            quantity: qty,
-            container
-          });
-        }
-      }
-
-      return Array.from(grouped.values());
-    }
-
-    function displayResults(results){
-      const resultSection = document.getElementById('resultSection');
-      const statusBar = document.getElementById('statusBar');
-      const pcTbody = document.getElementById('pcResultBody');
-      const mobileScheduleList = document.getElementById('mobileScheduleList');
-
-      resultSection.style.display = 'block';
-      pcTbody.innerHTML = '';
-      mobileScheduleList.innerHTML = '';
-
-      if(!results.length){
-        statusBar.innerHTML = '검색 결과가 없습니다.<br><span style="font-size:.8em;font-weight:normal;">No results found.</span>';
-        statusBar.className = 'status-msg status-fail';
-        statusBar.style.display = 'block';
-        document.querySelector('.dashboard').style.display = 'none';
-        return;
-      }
-
-      statusBar.innerHTML = `${results.length}개의 배송 계획을 찾았습니다!<br><span style="font-size:.75em;font-weight:normal;opacity:.9;">Found ${results.length} arrival plans!</span>`;
-      statusBar.className = 'status-msg status-success';
-      statusBar.style.display = 'block';
-      document.querySelector('.dashboard').style.display = 'flex';
-      document.getElementById('totalResults').innerText = results.length;
-
-      results.sort((a,b)=>{
-        if(a.itemNo !== b.itemNo) return a.itemNo.localeCompare(b.itemNo);
-        return (a.plannedDateObj || new Date(9999,0,1)) - (b.plannedDateObj || new Date(9999,0,1));
-      });
-
-      const confirmedFuture = results.filter(r=>r.planType === 'confirmed' && r.plannedDateObj !== null);
-      if(confirmedFuture.length){
-        const nextDateObj = confirmedFuture.reduce((min,p)=>p.plannedDateObj < min ? p.plannedDateObj : min, confirmedFuture[0].plannedDateObj);
-        const nextDateStr = ymd(nextDateObj);
-        document.getElementById('futureDeliveryQty').innerText = confirmedFuture
-          .filter(r=>ymd(r.plannedDateObj) === nextDateStr)
-          .reduce((s,i)=>s+i.quantity,0);
-        document.getElementById('nextDeliveryDate').innerText = nextDateStr;
-      } else {
-        document.getElementById('futureDeliveryQty').innerText = '0';
-        document.getElementById('nextDeliveryDate').innerText = '-';
-      }
-
-      let pcHtml = '';
-      results.forEach(row=>{
-        pcHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo,row.ssdRaw,row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`;
-      });
-      requestAnimationFrame(()=>{ pcTbody.innerHTML = pcHtml; });
-
-      const grouped = {};
-      results.forEach(r=>{
-        if(!grouped[r.itemNo]) grouped[r.itemNo] = { info:r, schedules:[] };
-        grouped[r.itemNo].schedules.push(r);
-      });
-
-      let mobileHtml = '';
-      for(const itemNo in grouped){
-        const g = grouped[itemNo];
-        const i = g.info;
-        const safeId = String(i.itemNo).replace(/[^a-zA-Z0-9]/g,'');
-
-        mobileHtml += `<div class="product-summary-card">
-          <div id="mobile-img-${safeId}" style="display:none;text-align:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed #eee;"></div>
-          <div class="summary-row"><span style="color:#555;font-weight:bold;">Item No</span><span style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${i.itemNo}</span></div>
-          <div class="summary-row" style="flex-direction:column;align-items:flex-start;"><span style="color:#555;font-weight:bold;margin-bottom:4px;">Name</span><span style="color:#333;font-size:.9rem;word-break:keep-all;">${i.itemName}</span></div>
-          <div class="summary-row"><span style="color:#555;font-weight:bold;">HFB</span><span>${i.hfb}</span></div>
-          <div class="summary-row"><span style="color:#555;font-weight:bold;">SSD</span><span>${parseExcelDate(i.ssdRaw)}</span></div>
-          <div class="summary-row" style="border:none;padding-bottom:0;margin-bottom:0;"><span style="color:#555;font-weight:bold;">EDS</span><span>${parseExcelDate(i.edsRaw)}</span></div>
-        </div>`;
-
-        g.schedules.forEach(sc=>{
-          mobileHtml += `<div class="schedule-item"><div>${sc.plannedDateStr}</div><div style="text-align:right;"><div style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${sc.quantity} ea</div><div style="color:#888;font-size:.8rem;margin-top:2px;"><i class="fas fa-box"></i> ${sc.container}</div></div></div>`;
-        });
-      }
-
-      requestAnimationFrame(()=>{ mobileScheduleList.innerHTML = mobileHtml; });
-      fetchAndDisplaySearchImages([...new Set(results.map(r=>r.itemNo))]);
-    }
-
-    async function fetchAndDisplaySearchImages(itemNos){
-      const dashImageCard = document.getElementById('dashImageCard');
-      if(dashImageCard){
-        dashImageCard.style.display = 'none';
-        dashImageCard.innerHTML = '';
-      }
-
-      let isFirst = false;
-      let fetchCount = 0;
-
-      for(const itemNo of itemNos){
-        const safeId = String(itemNo).replace(/[^a-zA-Z0-9]/g,'');
-        const cleanNo = String(itemNo).replace(/[^0-9]/g,'');
-        if(!cleanNo.length) continue;
-        const paddedNo = cleanNo.padStart(8,'0');
-
-        let imgUrl = imageCache.get(paddedNo);
-        if(!imgUrl && fetchCount < 5){
-          fetchCount++;
-          try{
-            const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
-            imgUrl = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
-            imageCache.set(paddedNo, imgUrl);
-          }catch{
-            imgUrl = 'NO_IMAGE';
-            imageCache.set(paddedNo, imgUrl);
-          }
-        }
-
-        if(imgUrl && imgUrl !== 'NO_IMAGE'){
-          const mob = document.getElementById(`mobile-img-${safeId}`);
-          if(mob){
-            mob.innerHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8px;">`;
-            mob.style.display = 'block';
-          }
-          if(!isFirst && dashImageCard){
-            dashImageCard.innerHTML = `<img src="${imgUrl}" style="max-width:100%;max-height:80px;object-fit:contain;">`;
-            dashImageCard.style.display = 'flex';
-            isFirst = true;
-          }
-        }
-      }
-    }
-
-    function processPivotData(list){
-      const pivot = buildPivotMain(list);
-      allPivotRows = pivot.pivotRows;
-      globalSortedDates = pivot.sortedDates;
-      renderDateFilterChips(globalSortedDates, pivot.hasNotFixed);
-      updateTableDisplay();
-    }
-
-    function renderDateFilterChips(dates, hasNotFixed){
-      const container = document.getElementById('dateFilterChips');
-      container.innerHTML = '';
-
-      const createChip = (val,label)=>{
-        const div = document.createElement('div');
-        div.className = 'filter-chip';
-        if(selectedDateFilters.has(val)) div.classList.add('active');
-        div.innerHTML = `<i class="fas fa-calendar-check"></i> ${label}`;
-        div.onclick = ()=>{
-          if(selectedDateFilters.has(val)){
-            selectedDateFilters.delete(val);
-            div.classList.remove('active');
-          } else {
-            selectedDateFilters.add(val);
-            div.classList.add('active');
-          }
-          filterPivot();
-        };
-        return div;
-      };
-
-      if(hasNotFixed) container.appendChild(createChip('Not Fixed','Not Fixed (미정/예상)'));
-      dates.forEach(d=>container.appendChild(createChip(d,d)));
-    }
-
-    function clearDateFilters(){
-      selectedDateFilters.clear();
-      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
-      filterPivot();
-    }
-
-    const debounceFilter = debounce(()=>{
-      const hfb = document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value;
-      if(hfb) localStorage.setItem('last_hfb', hfb);
-      filterPivot();
-    },400);
-
+    function ymd(d){ return isInvalidDateObject(d) ? '-' : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function parseExcelDate(value){ const d = excelToDate(value); return d ? ymd(d) : '-'; }
+    function openDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open(DB_NAME,1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME); }; req.onsuccess=e=>resolve(e.target.result); req.onerror=e=>reject(e.target.error); }); }
+    function saveToCache(key,val){ return openDB().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readwrite'); tx.objectStore(STORE_NAME).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(); })); }
+    function loadFromCache(key){ return openDB().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const req=tx.objectStore(STORE_NAME).get(key); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(); })); }
+    function parseCsvText(text){ const parsed = Papa.parse(text,{header:false,skipEmptyLines:true}); if(parsed.errors && parsed.errors.length) console.warn('CSV parse warnings:', parsed.errors); const rows=parsed.data||[]; let startIndex=1; for(let i=0;i<Math.min(20,rows.length);i++){ if(!rows[i]) continue; const v=String(rows[i][COL.ItemNo]||'').toLowerCase().replace(/\s/g,''); if(v.includes('artno')||v.includes('item')){ startIndex=i+1; break; } } const out=[]; for(let i=startIndex;i<rows.length;i++){ const r=rows[i]; if(!r) continue; const itemNo=String(r[COL.ItemNo]??'').trim(); if(!itemNo||itemNo.length<4) continue; const lc=itemNo.toLowerCase(); if(lc.includes('art')||lc.includes('item')) continue; out.push({ itemNo, itemName:r[COL.ItemName]??'', pa:r[COL.PA]??'', hfb:r[COL.HFB]??'', ssd:r[COL.SSD]??'', eds:r[COL.EDS]??'', qty:safeNum(r[COL.Qty]), status:r[COL.Status]??'', container:String(r[COL.Container]??'').trim(), confirmedDate:r[COL.ConfirmedDate]??'', expectedDate:r[COL.ExpectedDate]??'' }); } return out; }
+    function buildPivotMain(list){ const today=new Date(); today.setHours(0,0,0,0); const pivotMap={}; const uniqueDates=new Set(); let hasNotFixed=false; for(const row of list){ if(!row.itemNo) continue; const conf=excelToDate(row.confirmedDate); const qty=safeNum(row.qty); if(!pivotMap[row.itemNo]) pivotMap[row.itemNo]={ hfb:row.hfb||'', pa:row.pa||'', itemNo:row.itemNo, itemName:row.itemName||'', ssdRaw:row.ssd||'', edsRaw:row.eds||'', dates:{}, notFixedQty:0 }; if(conf){ const d=new Date(conf); d.setHours(0,0,0,0); if(d<today) continue; const s=ymd(d); if(s !== '-') { pivotMap[row.itemNo].dates[s]=(pivotMap[row.itemNo].dates[s]||0)+qty; uniqueDates.add(s); } } else { pivotMap[row.itemNo].notFixedQty += qty; hasNotFixed = true; } } return { pivotRows:Object.values(pivotMap).sort((a,b)=>{ if(a.hfb!==b.hfb) return String(a.hfb).localeCompare(String(b.hfb)); return String(a.pa).localeCompare(String(b.pa)); }), sortedDates:Array.from(uniqueDates).filter(d=>d&&d!=='-').sort(), hasNotFixed }; }
+    async function fetchAndParse(){ setProgress(10); const resp=await fetch(DATA_FILE_URL,{cache:'no-store'}); if(!resp.ok) throw new Error('CSV fetch failed: '+resp.status); setProgress(40); const eTag=resp.headers.get('ETag'); const lastMod=resp.headers.get('Last-Modified'); const sha=eTag||lastMod||'unknown'; const text=await resp.text(); setProgress(70); const parsedRows=parseCsvText(text); const pivot=buildPivotMain(parsedRows); let finalDateMs=null; if(lastMod){ const parsed=new Date(lastMod); if(!isNaN(parsed)) finalDateMs=parsed.getTime(); } const updateDateStr=finalDateMs?ymd(new Date(finalDateMs)):'-'; setProgress(90); return { sha, data:parsedRows, pivotRows:pivot.pivotRows, sortedDates:pivot.sortedDates, hasNotFixed:pivot.hasNotFixed, finalDateMs, updateDateStr, source:'csv' }; }
+    function applyMetaDate(finalDateMs, updateDateStr){ document.getElementById('data-update-date').innerText=`data update : ${updateDateStr||'-'}`; document.getElementById('stale-alert').style.display='none'; if(finalDateMs){ const diffHours=(Date.now()-Number(finalDateMs))/(1000*60*60); if(diffHours>72) document.getElementById('stale-alert').style.display='block'; } }
+    function applyPivotResult(pivotRows,sortedDates,hasNotFixed){ allPivotRows=pivotRows||[]; globalSortedDates=(sortedDates||[]).filter(d=>d&&d!=='-'); renderDateFilterChips(globalSortedDates,!!hasNotFixed); if(document.getElementById('tab-arrival').classList.contains('active')) updateTableDisplay(); }
+    function applyDataset(pack){ data=pack.data||[]; applyMetaDate(pack.finalDateMs,pack.updateDateStr); updateStatus('connected'); applyPivotResult(pack.pivotRows, pack.sortedDates, pack.hasNotFixed); }
+    window.onload=async function(){ try{ updateStatus('loading'); const urlParams=new URLSearchParams(window.location.search); const tabParam=urlParams.get('tab'); if(!urlParams.has('hfb')){ const saved=localStorage.getItem('last_hfb'); if(saved && document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value=saved; } else { if(document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value=urlParams.get('hfb')||''; if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value=urlParams.get('pa')||''; } let cached=null; try{ cached=await loadFromCache(CACHE_KEY); }catch(_){} if(cached && Array.isArray(cached.data) && cached.data.length>0){ applyDataset(cached); setProgress(100); initialLoadComplete=true; finishLoading(tabParam,urlParams); checkAndRefreshInBackground(cached.sha); return; } const fresh=await fetchAndParse(); applyDataset(fresh); setProgress(100); initialLoadComplete=true; finishLoading(tabParam,urlParams); saveToCache(CACHE_KEY,fresh).catch(console.warn); }catch(err){ console.error('Load Error:',err); updateStatus('error'); setProgress(100); } };
+    async function checkAndRefreshInBackground(cachedSha){ try{ const head=await fetch(DATA_FILE_URL,{method:'HEAD',cache:'no-store'}); if(!head.ok) return; const serverSha=head.headers.get('ETag')||head.headers.get('Last-Modified')||'unknown'; if(serverSha===cachedSha) return; const fresh=await fetchAndParse(); applyDataset(fresh); saveToCache(CACHE_KEY,fresh).catch(console.warn); rerunSearchIfVisible(); }catch(e){ console.warn('Background refresh failed:',e); } }
+    function rerunSearchIfVisible(){ const currentInput=document.getElementById('itemInput')?.value?.trim(); if(document.getElementById('resultSection').style.display==='block' && currentInput) performSearch(true); }
+    function finishLoading(tabParam,urlParams){ if(tabParam==='arrival') switchTab('arrival'); else if(tabParam==='search'){ switchTab('search'); if(urlParams.has('itemNo')){ document.getElementById('itemInput').value=urlParams.get('itemNo'); performSearch(); } } else if(tabParam==='market'){ switchTab('market'); } }
+    function updateStatus(status){ const b1=document.getElementById('statusBadge1'); const b2=document.getElementById('statusBadge2'); if(status==='connected'){ b1.innerHTML='<i class="fas fa-check-circle"></i>'; b1.className='status-badge connected'; b2.innerHTML='<i class="fas fa-check-circle"></i>'; b2.className='status-badge connected'; } else if(status==='loading'){ b1.innerHTML='<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b1.className='status-badge'; b2.innerHTML='<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b2.className='status-badge'; } else { b1.innerHTML='<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b1.className='status-badge error'; b2.innerHTML='<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b2.className='status-badge error'; } }
+    document.getElementById('itemInput').addEventListener('keypress', e=>{ if(e.key === 'Enter') performSearch(); });
+
+    function performSearch(isRefreshOnly=false){ const raw=document.getElementById('itemInput').value.trim(); if(!raw){ if(!isRefreshOnly) alert('제품번호를 입력해주세요.'); return; } localStorage.setItem('last_search_item', raw); const targets=raw.split(/[\s,]+/).map(t=>t.replace(/[^0-9A-Za-z]/g,'').toLowerCase()).filter(Boolean); if(!targets.length) return; document.getElementById('loading').style.display='block'; document.getElementById('resultSection').style.display='none'; setTimeout(()=>{ const results=searchData(targets); displayResults(results); document.getElementById('loading').style.display='none'; },50); }
+    function determinePlanned(row){ const confDate=excelToDate(row.confirmedDate); const expDate=excelToDate(row.expectedDate); if(confDate){ const dd=new Date(confDate); dd.setHours(0,0,0,0); return {type:'confirmed',dateObj:dd,confirmedDateObj:dd,label:`<span class="date-badge confirmed">${ymd(dd)}</span>`}; } if(expDate){ const dd=new Date(expDate); dd.setHours(0,0,0,0); return {type:'estimated',dateObj:null,confirmedDateObj:null,estimatedDateObj:dd,label:`<span class="date-badge estimated">WK${getWeekNumber(dd)} 예상</span>`}; } const statusTxt=row.status?String(row.status).toUpperCase():'미정'; return {type:'tbd',dateObj:null,confirmedDateObj:null,label:`<span class="date-badge tbd">${statusTxt}</span>`}; }
+    function searchData(targets){ const grouped=new Map(); const today=new Date(); today.setHours(0,0,0,0); const cleanTargets=targets.map(t=>({raw:t,cleaned:t.replace(/^0+(?=\d)/,'')})); for(let i=0;i<data.length;i++){ const row=data[i]; const itemNo=String(row.itemNo||'').replace(/\s+/g,'').toLowerCase(); const cleanNo=itemNo.replace(/^0+(?=\d)/,''); const cont=String(row.container||'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); let isMatch=false; for(let j=0;j<cleanTargets.length;j++){ const t=cleanTargets[j]; if((cleanNo&&cleanNo.includes(t.cleaned))||(itemNo&&itemNo.includes(t.raw))||(cont&&cont.includes(t.raw))){ isMatch=true; break; } } if(!isMatch) continue; const plan=determinePlanned(row); if(plan.type==='confirmed' && plan.confirmedDateObj && plan.confirmedDateObj<today) continue; const container=row.container||'배송준비중'; const keyStr=plan.type==='confirmed' ? ymd(plan.confirmedDateObj) : (plan.type==='estimated' ? `WK_${getWeekNumber(plan.estimatedDateObj)}` : 'TBD'); const key=`${row.itemNo}__${container}__${keyStr}`; const qty=safeNum(row.qty); if(grouped.has(key)) grouped.get(key).quantity += qty; else grouped.set(key,{hfb:row.hfb,itemNo:row.itemNo,itemName:row.itemName,ssdRaw:row.ssd,edsRaw:row.eds,plannedDateStr:plan.label,plannedDateObj:plan.confirmedDateObj||null,planType:plan.type,quantity:qty,container}); } return Array.from(grouped.values()); }
+    function displayResults(results){ const resultSection=document.getElementById('resultSection'); const statusBar=document.getElementById('statusBar'); const pcTbody=document.getElementById('pcResultBody'); const mobileScheduleList=document.getElementById('mobileScheduleList'); resultSection.style.display='block'; pcTbody.innerHTML=''; mobileScheduleList.innerHTML=''; if(!results.length){ statusBar.innerHTML='검색 결과가 없습니다.<br><span style="font-size:.8em;font-weight:normal;">No results found.</span>'; statusBar.className='status-msg status-fail'; statusBar.style.display='block'; document.querySelector('.dashboard').style.display='none'; return; } statusBar.innerHTML=`${results.length}개의 배송 계획을 찾았습니다!<br><span style="font-size:.75em;font-weight:normal;opacity:.9;">Found ${results.length} arrival plans!</span>`; statusBar.className='status-msg status-success'; statusBar.style.display='block'; document.querySelector('.dashboard').style.display='flex'; document.getElementById('totalResults').innerText=results.length; results.sort((a,b)=>{ if(a.itemNo!==b.itemNo) return a.itemNo.localeCompare(b.itemNo); return (a.plannedDateObj||new Date(9999,0,1)) - (b.plannedDateObj||new Date(9999,0,1)); }); const confirmedFuture=results.filter(r=>r.planType==='confirmed'&&r.plannedDateObj!==null); if(confirmedFuture.length){ const nextDateObj=confirmedFuture.reduce((min,p)=>p.plannedDateObj<min?p.plannedDateObj:min,confirmedFuture[0].plannedDateObj); const nextDateStr=ymd(nextDateObj); document.getElementById('futureDeliveryQty').innerText=confirmedFuture.filter(r=>ymd(r.plannedDateObj)===nextDateStr).reduce((s,i)=>s+i.quantity,0); document.getElementById('nextDeliveryDate').innerText=nextDateStr; } else { document.getElementById('futureDeliveryQty').innerText='0'; document.getElementById('nextDeliveryDate').innerText='-'; } let pcHtml=''; results.forEach(row=>{ pcHtml += `<tr><td>${row.hfb}</td><td>${formatItemLink(row.itemNo,row.ssdRaw,row.edsRaw)}</td><td>${row.itemName}</td><td>${parseExcelDate(row.ssdRaw)}</td><td>${parseExcelDate(row.edsRaw)}</td><td>${row.plannedDateStr}</td><td class="qty-cell">${row.quantity}</td><td>${row.container}</td></tr>`; }); requestAnimationFrame(()=>{ pcTbody.innerHTML=pcHtml; }); const grouped={}; results.forEach(r=>{ if(!grouped[r.itemNo]) grouped[r.itemNo]={info:r,schedules:[]}; grouped[r.itemNo].schedules.push(r); }); let mobileHtml=''; for(const itemNo in grouped){ const g=grouped[itemNo]; const i=g.info; const safeId=String(i.itemNo).replace(/[^a-zA-Z0-9]/g,''); mobileHtml += `<div class="product-summary-card"><div id="mobile-img-${safeId}" style="display:none;text-align:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed #eee;"></div><div class="summary-row"><span style="color:#555;font-weight:bold;">Item No</span><span style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${i.itemNo}</span></div><div class="summary-row" style="flex-direction:column;align-items:flex-start;"><span style="color:#555;font-weight:bold;margin-bottom:4px;">Name</span><span style="color:#333;font-size:.9rem;word-break:keep-all;">${i.itemName}</span></div><div class="summary-row"><span style="color:#555;font-weight:bold;">HFB</span><span>${i.hfb}</span></div><div class="summary-row"><span style="color:#555;font-weight:bold;">SSD</span><span>${parseExcelDate(i.ssdRaw)}</span></div><div class="summary-row" style="border:none;padding-bottom:0;margin-bottom:0;"><span style="color:#555;font-weight:bold;">EDS</span><span>${parseExcelDate(i.edsRaw)}</span></div></div>`; g.schedules.forEach(sc=>{ mobileHtml += `<div class="schedule-item"><div>${sc.plannedDateStr}</div><div style="text-align:right;"><div style="color:var(--ikea-blue);font-weight:bold;font-size:1.1rem;">${sc.quantity} ea</div><div style="color:#888;font-size:.8rem;margin-top:2px;"><i class="fas fa-box"></i> ${sc.container}</div></div></div>`; }); } requestAnimationFrame(()=>{ mobileScheduleList.innerHTML=mobileHtml; }); fetchAndDisplaySearchImages([...new Set(results.map(r=>r.itemNo))]); }
+    async function fetchAndDisplaySearchImages(itemNos){ const dashImageCard=document.getElementById('dashImageCard'); if(dashImageCard){ dashImageCard.style.display='none'; dashImageCard.innerHTML=''; } let isFirst=false; let fetchCount=0; for(const itemNo of itemNos){ const safeId=String(itemNo).replace(/[^a-zA-Z0-9]/g,''); const cleanNo=String(itemNo).replace(/[^0-9]/g,''); if(!cleanNo.length) continue; const paddedNo=cleanNo.padStart(8,'0'); let imgUrl=imageCache.get(paddedNo); if(!imgUrl && fetchCount<5){ fetchCount++; try{ const res=await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`); imgUrl = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE'; imageCache.set(paddedNo,imgUrl); }catch{ imgUrl='NO_IMAGE'; imageCache.set(paddedNo,imgUrl); } } if(imgUrl && imgUrl!=='NO_IMAGE'){ const mob=document.getElementById(`mobile-img-${safeId}`); if(mob){ mob.innerHTML=`<img src="${imgUrl}" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8px;">`; mob.style.display='block'; } if(!isFirst && dashImageCard){ dashImageCard.innerHTML=`<img src="${imgUrl}" style="max-width:100%;max-height:80px;object-fit:contain;">`; dashImageCard.style.display='flex'; isFirst=true; } } } }
+    function renderDateFilterChips(dates,hasNotFixed){ const container=document.getElementById('dateFilterChips'); container.innerHTML=''; const createChip=(val,label)=>{ const div=document.createElement('div'); div.className='filter-chip'; if(selectedDateFilters.has(val)) div.classList.add('active'); div.innerHTML=`<i class="fas fa-calendar-check"></i> ${label}`; div.onclick=()=>{ if(selectedDateFilters.has(val)){ selectedDateFilters.delete(val); div.classList.remove('active'); } else { selectedDateFilters.add(val); div.classList.add('active'); } filterPivot(); }; return div; }; if(hasNotFixed) container.appendChild(createChip('Not Fixed','Not Fixed (미정/예상)')); dates.forEach(d=>{ if(d && d!=='-') container.appendChild(createChip(d,d)); }); }
+    function clearDateFilters(){ selectedDateFilters.clear(); document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active')); filterPivot(); }
+    const debounceFilter = debounce(()=>{ const hfb=document.getElementById('pf-hfb')?.value || document.getElementById('hfb-filter')?.value; if(hfb) localStorage.setItem('last_hfb', hfb); filterPivot(); },400);
     function filterPivot(){ updateTableDisplay(); }
-
-    function sortTable(col){
-      currentSortAsc = (currentSortCol === col) ? !currentSortAsc : true;
-      currentSortCol = col;
-      updateTableDisplay();
-    }
-
-    function getSortIcon(col){
-      if(currentSortCol !== col) return '<i class="fas fa-sort sort-icon"></i>';
-      return currentSortAsc ? '<i class="fas fa-sort-up sort-icon active"></i>' : '<i class="fas fa-sort-down sort-icon active"></i>';
-    }
-
-    function updateTableDisplay(){
-      const isMobile = window.innerWidth <= 768;
-      const pfHfb = document.getElementById('pf-hfb').value.trim().toUpperCase();
-      const pfPa = document.getElementById('pf-pa').value.trim().toUpperCase();
-      const headerHfb = (document.getElementById('hfb-filter')?.value || '').trim().toUpperCase();
-      const headerPa = (document.getElementById('pa-filter')?.value || '').trim().toUpperCase();
-      const hfbVal = isMobile ? pfHfb : headerHfb;
-      const paVal = isMobile ? pfPa : headerPa;
-      const hasDateFilter = selectedDateFilters.size > 0;
-
-      if(isMobile){
-        const isEmpty = !hfbVal && !paVal && !hasDateFilter;
-        document.getElementById('pivotEmptyState').style.display = isEmpty ? 'block' : 'none';
-        document.getElementById('pivotTable').style.display = isEmpty ? 'none' : 'table';
-        if(isEmpty) return;
-      } else {
-        document.getElementById('pivotEmptyState').style.display = 'none';
-        document.getElementById('pivotTable').style.display = 'table';
-      }
-
-      const visibleDates = hasDateFilter ? globalSortedDates.filter(d=>selectedDateFilters.has(d)) : [...globalSortedDates];
-      const showNotFixed = !hasDateFilter || selectedDateFilters.has('Not Fixed');
-      exportVisibleDates = visibleDates;
-      exportShowNotFixed = showNotFixed;
-      const sig = visibleDates.join('|') + (showNotFixed ? '|NF' : '') + (isMobile ? '|M' : '|P') + `|Sort:${currentSortCol}:${currentSortAsc}`;
-
-      if(sig !== lastRenderedDateColumns){
-        let theadHtml = `<tr>
-          <th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-          <th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-          <th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>
-          <th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>`;
-
-        if(showNotFixed){
-          theadHtml += `<th class="not-fixed-col" onclick="sortTable('Not Fixed')">미정/예상<br>(Not Fixed) ${getSortIcon('Not Fixed')}</th>`;
-        }
-
-        visibleDates.forEach(d=>{
-          theadHtml += `<th class="date-col" onclick="sortTable('${d}')">${d} ${getSortIcon(d)}</th>`;
-        });
-
-        theadHtml += '</tr>';
-        document.getElementById('pivotHead').innerHTML = theadHtml;
-        lastRenderedDateColumns = sig;
-
-        if(!isMobile){
-          if(document.getElementById('hfb-filter')) document.getElementById('hfb-filter').value = hfbVal;
-          if(document.getElementById('pa-filter')) document.getElementById('pa-filter').value = paVal;
-        }
-      }
-
-      const itemNoVal = (document.querySelector('input[data-field="itemNo"]')?.value || '').trim().toUpperCase();
-      const itemNameVal = (document.querySelector('input[data-field="itemName"]')?.value || '').trim().toUpperCase();
-
-      const filteredRows = allPivotRows.filter(row=>{
-        if(hfbVal && String(row.hfb).toUpperCase() !== hfbVal) return false;
-        if(paVal && String(row.pa).toUpperCase() !== paVal) return false;
-        if(itemNoVal && String(row.itemNo).toUpperCase().indexOf(itemNoVal) === -1) return false;
-        if(itemNameVal && String(row.itemName).toUpperCase().indexOf(itemNameVal) === -1) return false;
-
-        if(hasDateFilter){
-          let hit = selectedDateFilters.has('Not Fixed') && row.notFixedQty > 0;
-          if(!hit){
-            for(const k of selectedDateFilters){
-              if(k !== 'Not Fixed' && row.dates[k] > 0){
-                hit = true;
-                break;
-              }
-            }
-          }
-          if(!hit) return false;
-        }
-        return true;
-      });
-
-      if(currentSortCol){
-        filteredRows.sort((a,b)=>{
-          let vA, vB;
-          if(currentSortCol === 'itemNo'){ vA = String(a.itemNo); vB = String(b.itemNo); }
-          else if(currentSortCol === 'itemName'){ vA = String(a.itemName); vB = String(b.itemName); }
-          else if(currentSortCol === 'hfb'){ vA = String(a.hfb); vB = String(b.hfb); }
-          else if(currentSortCol === 'pa'){ vA = String(a.pa); vB = String(b.pa); }
-          else if(currentSortCol === 'Not Fixed'){ vA = a.notFixedQty || 0; vB = b.notFixedQty || 0; }
-          else { vA = a.dates[currentSortCol] || 0; vB = b.dates[currentSortCol] || 0; }
-
-          const nA = parseFloat(vA), nB = parseFloat(vB);
-          if(!isNaN(nA) && !isNaN(nB)) return currentSortAsc ? nA - nB : nB - nA;
-          if(vA < vB) return currentSortAsc ? -1 : 1;
-          if(vA > vB) return currentSortAsc ? 1 : -1;
-          return 0;
-        });
-      }
-
-      displayedPivotRows = filteredRows;
-
-      const tbody = document.getElementById('pivotBody');
-      tbody.innerHTML = '';
-
-      if(!filteredRows.length){
-        tbody.innerHTML = `<tr><td colspan="20" style="padding:50px;text-align:center;color:#888;font-size:1.1rem;background:#fff;"><i class="fas fa-box-open" style="font-size:2rem;color:#ccc;margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:.85rem;color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`;
-        return;
-      }
-
-      let idx = 0;
-      const CHUNK = 100;
-      const MAX = Math.min(filteredRows.length, 3000);
-
-      function renderChunk(){
-        let html = '';
-        const end = Math.min(idx + CHUNK, MAX);
-        for(; idx < end; idx++){
-          const r = filteredRows[idx];
-          const nf = (showNotFixed && r.notFixedQty > 0) ? r.notFixedQty : '';
-          html += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo,r.ssdRaw,r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`;
-          if(showNotFixed) html += `<td class="not-fixed-col">${nf}</td>`;
-          visibleDates.forEach(d=>{ html += `<td class="qty-cell">${r.dates[d] || ''}</td>`; });
-          html += '</tr>';
-        }
-        tbody.insertAdjacentHTML('beforeend', html);
-        if(idx < MAX) requestAnimationFrame(renderChunk);
-      }
-      requestAnimationFrame(renderChunk);
-    }
-
-    document.addEventListener('mousemove', e=>{
-      if(tooltipEl.style.display === 'block'){
-        tooltipEl.style.left = `${e.clientX+15}px`;
-        tooltipEl.style.top = `${e.clientY+15}px`;
-      }
-    });
-
-    function showImageTooltip(e,itemNo,ssd,eds){
-      if(window.innerWidth <= 768) return;
-      clearTimeout(hoverTimeout);
-      currentHoverItem = itemNo;
-      tooltipEl.style.left = `${e.clientX+15}px`;
-      tooltipEl.style.top = `${e.clientY+15}px`;
-      tooltipEl.style.display = 'block';
-      tooltipEl.querySelector('.img-wrapper').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-      hoverTimeout = setTimeout(async ()=>{
-        if(currentHoverItem !== itemNo) return;
-        const paddedNo = String(itemNo).replace(/[^0-9]/g,'').padStart(8,'0');
-        if(imageCache.has(paddedNo)){
-          renderTooltipImage(imageCache.get(paddedNo),ssd,eds);
-          return;
-        }
-        try{
-          const res = await fetch(`https://sik.search.blue.cdtapps.com/kr/ko/search-box?q=${paddedNo}`);
-          const url = res.ok ? (findBestImage(await res.json()) || 'NO_IMAGE') : 'NO_IMAGE';
-          imageCache.set(paddedNo, url);
-          if(currentHoverItem === itemNo) renderTooltipImage(url,ssd,eds);
-        }catch{
-          renderTooltipImage('ERROR',ssd,eds);
-        }
-      },400);
-    }
-
-    function findBestImage(obj){
-      let best = null;
-      function traverse(o){
-        if(!o || typeof o !== 'object') return;
-        for(const k in o){
-          if(typeof o[k] === 'string'){
-            let v = o[k].toLowerCase();
-            if(v.match(/\.(jpg|jpeg|png|webp|avif)(\?.*)?$/) && !v.includes('.svg')){
-              let url = o[k];
-              if(url.startsWith('//')) url = 'https:' + url;
-              else if(url.startsWith('/')) url = 'https://www.ikea.com' + url;
-              if(!best) best = url;
-              else if(url.includes('s5') || url.includes('main')) best = url;
-            }
-          } else {
-            traverse(o[k]);
-          }
-        }
-      }
-      traverse(obj);
-      return best;
-    }
-
-    function renderTooltipImage(url,ssd,eds){
-      const imgWrapper = tooltipEl.querySelector('.img-wrapper');
-      imgWrapper.innerHTML = '';
-
-      if(url === 'NO_IMAGE' || url === 'ERROR'){
-        imgWrapper.innerHTML = '<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>';
-      } else {
-        const img = document.createElement('img');
-        img.alt = 'Preview';
-        img.src = url;
-        img.onerror = ()=>{
-          imgWrapper.innerHTML = '<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>';
-        };
-        imgWrapper.appendChild(img);
-      }
-
-      tooltipEl.querySelector('.info-wrapper').innerHTML = `<div style="margin-bottom:2px;"><b>SSD :</b> <span style="color:var(--ikea-blue);font-weight:600;">${ssd || '-'}</span></div><div><b>EDS :</b> <span style="color:var(--ikea-blue);font-weight:600;">${eds || '-'}</span></div>`;
-    }
-
-    function hideImageTooltip(){
-      clearTimeout(hoverTimeout);
-      currentHoverItem = null;
-      tooltipEl.style.display = 'none';
-    }
-
-    function formatItemLink(itemNo,ssdRaw,edsRaw){
-      const raw = String(itemNo).trim();
-      const cleanNo = raw.replace(/[^0-9]/g,'');
-      if(cleanNo.length > 0){
-        const paddedNo = cleanNo.padStart(8,'0');
-        const fSsd = parseExcelDate(ssdRaw);
-        const fEds = parseExcelDate(edsRaw);
-        return `<a href="https://piafacts.ikea.net/kr/en/${paddedNo}" target="_blank" class="item-link" onclick="event.stopPropagation();" onmouseenter="showImageTooltip(event,'${paddedNo}','${fSsd}','${fEds}')" onmouseleave="hideImageTooltip()">${raw}</a>`;
-      }
-      return `<b>${raw}</b>`;
-    }
-
-    function exportToXlsx(){
-      if(!displayedPivotRows || !displayedPivotRows.length){
-        alert('No data to export');
-        return;
-      }
-
-      function doExport(){
-        const header = ['HFB','PA','Item No','Item Name'];
-        if(exportShowNotFixed) header.push('Not Fixed');
-        exportVisibleDates.forEach(d=>header.push(d));
-
-        const rows = [header];
-        displayedPivotRows.forEach(row=>{
-          const r = [row.hfb,row.pa,row.itemNo,row.itemName];
-          if(exportShowNotFixed) r.push(row.notFixedQty || '');
-          exportVisibleDates.forEach(d=>r.push(row.dates[d] || ''));
-          rows.push(r);
-        });
-
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb,ws,'Filtered_Arrival');
-        XLSX.writeFile(wb,`${ymd(new Date())}_filtered_export.xlsx`);
-      }
-
-      if(typeof XLSX !== 'undefined'){
-        doExport();
-        return;
-      }
-
-      const s = document.createElement('script');
-      s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
-      s.onload = doExport;
-      document.head.appendChild(s);
-    }
-
-    function copyToClipboard(){
-      if(!displayedPivotRows || !displayedPivotRows.length){
-        alert('복사할 데이터가 없습니다.');
-        return;
-      }
-
-      let tsv = ['HFB','PA','Item No','Item Name'];
-      if(exportShowNotFixed) tsv.push('Not Fixed');
-      exportVisibleDates.forEach(d=>tsv.push(d));
-      tsv = tsv.join('\t') + '\n';
-
-      displayedPivotRows.forEach(row=>{
-        let r = [row.hfb,row.pa,row.itemNo,row.itemName];
-        if(exportShowNotFixed) r.push(row.notFixedQty || '');
-        exportVisibleDates.forEach(d=>r.push(row.dates[d] || ''));
-        tsv += r.join('\t') + '\n';
-      });
-
-      navigator.clipboard.writeText(tsv)
-        .then(()=>alert('✅ 현재 필터링된 데이터가 클립보드에 복사되었습니다. 메신저나 엑셀에 붙여넣기(Ctrl+V) 하세요!'))
-        .catch(()=>alert('복사에 실패했습니다. 브라우저 설정을 확인해주세요.'));
-    }
-
-    let html5QrcodeScanner = null;
-    function loadQrCodeLib(cb){
-      if(typeof Html5Qrcode !== 'undefined'){ cb(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/html5-qrcode';
-      s.onload = cb;
-      document.head.appendChild(s);
-    }
-
-    function startScanner(){
-      loadQrCodeLib(()=>{
-        document.getElementById('scanner-modal').style.display = 'flex';
-        if(!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode('reader');
-        html5QrcodeScanner.start(
-          { facingMode:'environment' },
-          { fps:15, qrbox:{width:300,height:150}, aspectRatio:1.0 },
-          onScanSuccess
-        ).catch(()=>alert('Camera Error'));
-      });
-    }
-
-    function onScanSuccess(t){
-      let n = t.replace(/[^0-9]/g,'');
-      if(n.length >= 8) n = n.substring(0,8);
-      document.getElementById('itemInput').value = n;
-      stopScanner();
-      performSearch();
-    }
-
-    function stopScanner(){
-      if(html5QrcodeScanner){
-        html5QrcodeScanner.stop().then(()=>{
-          document.getElementById('scanner-modal').style.display = 'none';
-        });
-      } else {
-        document.getElementById('scanner-modal').style.display = 'none';
-      }
-    }
-
-    const mdLoadingStatus=document.getElementById('md-loading-status'),
-          mdUploadSection=document.getElementById('md-upload-section'),
-          mdSearchSection=document.getElementById('md-search-section'),
-          mdDbStatusBadge=document.getElementById('md-db-status-badge'),
-          mdDbStatusSub=document.getElementById('md-db-status-sub'),
-          mdFileInput=document.getElementById('md-dropzone-file'),
-          mdSearchBtn=document.getElementById('md-search-btn'),
-          mdInputKeyword=document.getElementById('md-input-keyword'),
-          mdResultContainer=document.getElementById('md-result-container'),
-          mdErrorMessage=document.getElementById('md-error-message'),
-          mdErrCodeSpan=document.getElementById('md-err-code'),
-          mdResMarket=document.getElementById('md-res-market'),
-          mdResPMA=document.getElementById('md-res-pma'),
-          mdPmaLabel=document.getElementById('md-pma-label'),
-          mdResAddress=document.getElementById('md-res-address'),
-          mdResPostcodeVal=document.getElementById('md-res-postcode-val'),
-          mdMapFrame=document.getElementById('md-map-frame'),
-          mdSelectedAddressBox=document.getElementById('md-selected-address-box'),
-          mdDisplaySelectedAddr=document.getElementById('md-display-selected-addr');
-
-    function attemptAutoLoadMarketData(){
-      if(isMdLoaded) return;
-      mdLoadingStatus.classList.remove('hidden');
-      fetch(TARGET_CSV_FILENAME)
-        .then(r=>{ if(!r.ok) throw new Error('not ok'); return r.text(); })
-        .then(csvText=>{
-          parseMarketCSV(csvText);
-          mdLoadingStatus.classList.add('hidden');
-        })
-        .catch(()=>{
-          mdLoadingStatus.classList.add('hidden');
-          mdUploadSection.classList.remove('hidden');
-        });
-    }
-
-    mdFileInput.addEventListener('change', e=>{
-      const file = e.target.files[0];
-      if(!file) return;
-      Papa.parse(file,{
-        header:true,
-        skipEmptyLines:true,
-        complete:r=>{
-          onMarketDataLoaded(r.data);
-          mdUploadSection.classList.add('hidden');
-        },
-        error:err=>alert('File read failed: ' + err)
-      });
-    });
-
-    function parseMarketCSV(csvText){
-      Papa.parse(csvText,{
-        header:true,
-        skipEmptyLines:true,
-        complete:r=>onMarketDataLoaded(r.data)
-      });
-    }
-
-    function onMarketDataLoaded(dataRows){
-      mdData = dataRows;
-      isMdLoaded = true;
-      mdDbStatusBadge.textContent = '✅ 데이터 연결됨';
-      mdDbStatusBadge.className = 'bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded border border-green-200';
-      mdDbStatusSub.textContent = 'Data Connected';
-      mdSearchSection.classList.remove('opacity-50','pointer-events-none');
-      mdInputKeyword.focus();
-    }
-
-    function handleMarketSearchAction(){
-      if(!isMdLoaded) return;
-      const val = mdInputKeyword.value.trim();
-      if(!val) return;
-      if(/^\d{5}$/.test(val)){
-        mdSelectedAddressBox.classList.add('hidden');
-        lookupMarketByPostcode(val);
-      } else {
-        openDaumAddressSearch(val);
-      }
-    }
-
-    function lookupMarketByPostcode(code){
-      const result = mdData.find(r=>r['Postcode'] == code);
-      if(result){
-        mdErrorMessage.classList.add('hidden');
-        mdResultContainer.classList.remove('hidden');
-
-        let displayCode = result['PMA'];
-        const fallbackCode = result['SMA'];
-        let labelText = 'PMA';
-
-        if(!displayCode || displayCode.trim() === '' || displayCode === '#N/A'){
-          displayCode = fallbackCode;
-          labelText = 'SMA';
-        }
-
-        mdResMarket.textContent = result['Market Name'] || 'N/A';
-        mdPmaLabel.textContent = labelText;
-        mdResPMA.textContent = displayCode || 'N/A';
-        mdResPostcodeVal.textContent = code;
-
-        const parts = [
-          result['Province\nSi / Do English'],
-          result['District\nGu / Gun English'],
-          result['Neighbourhood\nDong English']
-        ].filter(p=>p && p.trim() !== '');
-
-        const addr = parts.join(' ') + ', South Korea';
-        mdResAddress.textContent = addr;
-        updateMarketMap(addr);
-      } else {
-        mdResultContainer.classList.add('hidden');
-        mdErrorMessage.classList.remove('hidden');
-        mdErrCodeSpan.textContent = code;
-      }
-    }
-
-    function updateMarketMap(address){
-      mdMapFrame.src = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
-    }
-
-    function openDaumAddressSearch(keyword){
-      new daum.Postcode({
-        oncomplete:function(d){
-          const zonecode = d.zonecode;
-          const fullAddr = d.roadAddress || d.jibunAddress;
-          mdInputKeyword.value = zonecode;
-          mdSelectedAddressBox.classList.remove('hidden');
-          mdDisplaySelectedAddr.textContent = fullAddr;
-          lookupMarketByPostcode(zonecode);
-        }
-      }).open({ q: keyword });
-    }
-
-    mdSearchBtn.addEventListener('click', handleMarketSearchAction);
-    mdInputKeyword.addEventListener('keypress', e=>{
-      if(e.key === 'Enter') handleMarketSearchAction();
-    });
+    function sortTable(col){ currentSortAsc=(currentSortCol===col)?!currentSortAsc:true; currentSortCol=col; updateTableDisplay(); }
+    function getSortIcon(col){ if(currentSortCol!==col) return '<i class="fas fa-sort sort-icon"></i>'; return currentSortAsc ? '<i class="fas fa-sort-up sort-icon active"></i>' : '<i class="fas fa-sort-down sort-icon active"></i>'; }
+    function updateTableDisplay(){ const isMobile=window.innerWidth<=768; const pfHfb=document.getElementById('pf-hfb').value.trim().toUpperCase(); const pfPa=document.getElementById('pf-pa').value.trim().toUpperCase(); const headerHfb=(document.getElementById('hfb-filter')?.value||'').trim().toUpperCase(); const headerPa=(document.getElementById('pa-filter')?.value||'').trim().toUpperCase(); const hfbVal=isMobile?pfHfb:headerHfb; const paVal=isMobile?pfPa:headerPa; const hasDateFilter=selectedDateFilters.size>0; if(isMobile){ const isEmpty=!hfbVal&&!paVal&&!hasDateFilter; document.getElementById('pivotEmptyState').style.display=isEmpty?'block':'none'; document.getElementById('pivotTable').style.display=isEmpty?'none':'table'; if(isEmpty) return; } else { document.getElementById('pivotEmptyState').style.display='none'; document.getElementById('pivotTable').style.display='table'; } const visibleDates=hasDateFilter ? globalSortedDates.filter(d=>selectedDateFilters.has(d)) : [...globalSortedDates]; const showNotFixed=!hasDateFilter||selectedDateFilters.has('Not Fixed'); exportVisibleDates=visibleDates; exportShowNotFixed=showNotFixed; const sig=visibleDates.join('|')+(showNotFixed?'|NF':'')+(isMobile?'|M':'|P')+`|Sort:${currentSortCol}:${currentSortAsc}`; if(sig!==lastRenderedDateColumns){ let theadHtml=`<tr><th class="col-hfb" onclick="sortTable('hfb')">HFB ${getSortIcon('hfb')}<br><input id="hfb-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th><th class="col-pa" onclick="sortTable('pa')">PA ${getSortIcon('pa')}<br><input id="pa-filter" type="text" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th><th class="col-itemno" onclick="sortTable('itemNo')">Item No ${getSortIcon('itemNo')}<br><input data-field="itemNo" class="always-visible-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th><th class="col-itemname" onclick="sortTable('itemName')">Item Name ${getSortIcon('itemName')}<br><input data-field="itemName" class="pc-header-filter" placeholder="Filter" onkeyup="debounceFilter()" onclick="event.stopPropagation()"></th>`; if(showNotFixed) theadHtml += `<th class="not-fixed-col" onclick="sortTable('Not Fixed')">미정/예상<br>(Not Fixed) ${getSortIcon('Not Fixed')}</th>`; visibleDates.forEach(d=>{ theadHtml += `<th class="date-col" onclick="sortTable('${d}')">${d} ${getSortIcon(d)}</th>`; }); theadHtml += '</tr>'; document.getElementById('pivotHead').innerHTML=theadHtml; lastRenderedDateColumns=sig; if(!isMobile){ if(document.getElementById('hfb-filter')) document.getElementById('hfb-filter').value=hfbVal; if(document.getElementById('pa-filter')) document.getElementById('pa-filter').value=paVal; } } const itemNoVal=(document.querySelector('input[data-field="itemNo"]')?.value||'').trim().toUpperCase(); const itemNameVal=(document.querySelector('input[data-field="itemName"]')?.value||'').trim().toUpperCase(); const filteredRows=allPivotRows.filter(row=>{ if(hfbVal && String(row.hfb).toUpperCase()!==hfbVal) return false; if(paVal && String(row.pa).toUpperCase()!==paVal) return false; if(itemNoVal && String(row.itemNo).toUpperCase().indexOf(itemNoVal)===-1) return false; if(itemNameVal && String(row.itemName).toUpperCase().indexOf(itemNameVal)===-1) return false; if(hasDateFilter){ let hit=selectedDateFilters.has('Not Fixed')&&row.notFixedQty>0; if(!hit){ for(const k of selectedDateFilters){ if(k!=='Not Fixed' && row.dates[k]>0){ hit=true; break; } } } if(!hit) return false; } return true; }); if(currentSortCol){ filteredRows.sort((a,b)=>{ let vA,vB; if(currentSortCol==='itemNo'){ vA=String(a.itemNo); vB=String(b.itemNo); } else if(currentSortCol==='itemName'){ vA=String(a.itemName); vB=String(b.itemName); } else if(currentSortCol==='hfb'){ vA=String(a.hfb); vB=String(b.hfb); } else if(currentSortCol==='pa'){ vA=String(a.pa); vB=String(b.pa); } else if(currentSortCol==='Not Fixed'){ vA=a.notFixedQty||0; vB=b.notFixedQty||0; } else { vA=a.dates[currentSortCol]||0; vB=b.dates[currentSortCol]||0; } const nA=parseFloat(vA), nB=parseFloat(vB); if(!isNaN(nA)&&!isNaN(nB)) return currentSortAsc ? nA-nB : nB-nA; if(vA<vB) return currentSortAsc?-1:1; if(vA>vB) return currentSortAsc?1:-1; return 0; }); } displayedPivotRows=filteredRows; const tbody=document.getElementById('pivotBody'); tbody.innerHTML=''; if(!filteredRows.length){ tbody.innerHTML=`<tr><td colspan="20" style="padding:50px;text-align:center;color:#888;font-size:1.1rem;background:#fff;"><i class="fas fa-box-open" style="font-size:2rem;color:#ccc;margin-bottom:10px;"></i><br>현재 불러올 수 있는 미래 도착 예정 데이터가 없습니다.<br><span style="font-size:.85rem;color:#aaa;">(모든 데이터가 과거 날짜이거나 파일이 비어있을 수 있습니다.)</span></td></tr>`; return; } let idx=0; const CHUNK=100; const MAX=Math.min(filteredRows.length,3000); function renderChunk(){ let html=''; const end=Math.min(idx+CHUNK,MAX); for(;idx<end;idx++){ const r=filteredRows[idx]; const nf=(showNotFixed && r.notFixedQty>0) ? r.notFixedQty : ''; html += `<tr><td class="col-hfb">${r.hfb}</td><td class="col-pa">${r.pa}</td><td class="col-itemno">${formatItemLink(r.itemNo,r.ssdRaw,r.edsRaw)}</td><td class="col-itemname">${r.itemName}</td>`; if(showNotFixed) html += `<td class="not-fixed-col">${nf}</td>`; visibleDates.forEach(d=>{ html += `<td class="qty-cell">${r.dates[d]||''}</td>`; }); html += '</tr>'; } tbody.insertAdjacentHTML('beforeend', html); if(idx<MAX) requestAnimationFrame(renderChunk); } requestAnimationFrame(renderChunk); }
+    function renderTooltipImage(url,ssd,eds){ const imgWrapper=tooltipEl.querySelector('.img-wrapper'); imgWrapper.innerHTML=''; if(url==='NO_IMAGE'||url==='ERROR'){ imgWrapper.innerHTML='<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>'; } else { const img=document.createElement('img'); img.alt='Preview'; img.src=url; img.onerror=()=>{ imgWrapper.innerHTML='<div style="font-weight:bold;color:#e74c3c;">Image N/A</div>'; }; imgWrapper.appendChild(img); } tooltipEl.querySelector('.info-wrapper').innerHTML=`<div style="margin-bottom:2px;"><b>SSD :</b> <span style="color:var(--ikea-blue);font-weight:600;">${ssd||'-'}</span></div><div><b>EDS :</b> <span style="color:var(--ikea-blue);font-weight:600;">${eds||'-'}</span></div>`; }
+    function hideImageTooltip(){ clearTimeout(hoverTimeout); currentHoverItem=null; tooltipEl.style.display='none'; }
+    function switchTab(tabName){ document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active')); const nav=document.getElementById('nav-'+tabName); if(nav) nav.classList.add('active'); const tab=document.getElementById('tab-'+tabName); if(tab) tab.classList.add('active'); if(tabName==='arrival'){ if(allPivotRows.length>0) updateTableDisplay(); else if(data.length>0) processPivotData(data); } else if(tabName==='market'){ attemptAutoLoadMarketData(); } }
+    function processPivotData(list){ const pivot=buildPivotMain(list); allPivotRows=pivot.pivotRows; globalSortedDates=pivot.sortedDates; renderDateFilterChips(globalSortedDates,pivot.hasNotFixed); updateTableDisplay(); }
+    function loadQrCodeLib(cb){ if(typeof Html5Qrcode!=='undefined'){ cb(); return; } const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode'; s.onload=cb; document.head.appendChild(s); }
+    function startScanner(){ loadQrCodeLib(()=>{ document.getElementById('scanner-modal').style.display='flex'; if(!html5QrcodeScanner) html5QrcodeScanner=new Html5Qrcode('reader'); html5QrcodeScanner.start({facingMode:'environment'},{fps:15,qrbox:{width:300,height:150},aspectRatio:1.0},onScanSuccess).catch(()=>alert('Camera Error')); }); }
+    function onScanSuccess(t){ let n=t.replace(/[^0-9]/g,''); if(n.length>=8) n=n.substring(0,8); document.getElementById('itemInput').value=n; stopScanner(); performSearch(); }
+    function stopScanner(){ if(html5QrcodeScanner){ html5QrcodeScanner.stop().then(()=>{ document.getElementById('scanner-modal').style.display='none'; }); } else { document.getElementById('scanner-modal').style.display='none'; } }
+    function attemptAutoLoadMarketData(){ if(isMdLoaded) return; mdLoadingStatus.classList.remove('hidden'); fetch(TARGET_CSV_FILENAME).then(r=>{ if(!r.ok) throw new Error('not ok'); return r.text(); }).then(csvText=>{ parseMarketCSV(csvText); mdLoadingStatus.classList.add('hidden'); }).catch(()=>{ mdLoadingStatus.classList.add('hidden'); mdUploadSection.classList.remove('hidden'); }); }
+    mdFileInput.addEventListener('change', e=>{ const file=e.target.files[0]; if(!file) return; Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>{ onMarketDataLoaded(r.data); mdUploadSection.classList.add('hidden'); },error:err=>alert('File read failed: '+err)}); });
+    function parseMarketCSV(csvText){ Papa.parse(csvText,{header:true,skipEmptyLines:true,complete:r=>onMarketDataLoaded(r.data)}); }
+    function onMarketDataLoaded(dataRows){ mdData=dataRows; isMdLoaded=true; mdDbStatusBadge.textContent='✅ 데이터 연결됨'; mdDbStatusBadge.className='bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded border border-green-200'; mdDbStatusSub.textContent='Data Connected'; mdSearchSection.classList.remove('opacity-50','pointer-events-none'); mdInputKeyword.focus(); }
+    function handleMarketSearchAction(){ if(!isMdLoaded) return; const val=mdInputKeyword.value.trim(); if(!val) return; if(/^\d{5}$/.test(val)){ mdSelectedAddressBox.classList.add('hidden'); lookupMarketByPostcode(val); } else { openDaumAddressSearch(val); } }
+    function lookupMarketByPostcode(code){ const result=mdData.find(r=>r['Postcode']==code); if(result){ mdErrorMessage.classList.add('hidden'); mdResultContainer.classList.remove('hidden'); let displayCode=result['PMA']; const fallbackCode=result['SMA']; let labelText='PMA'; if(!displayCode||displayCode.trim()===''||displayCode==='#N/A'){ displayCode=fallbackCode; labelText='SMA'; } mdResMarket.textContent=result['Market Name']||'N/A'; mdPmaLabel.textContent=labelText; mdResPMA.textContent=displayCode||'N/A'; mdResPostcodeVal.textContent=code; const parts=[result['Province\nSi / Do English'],result['District\nGu / Gun English'],result['Neighbourhood\nDong English']].filter(p=>p&&p.trim()!==''); const addr=parts.join(' ')+', South Korea'; mdResAddress.textContent=addr; updateMarketMap(addr); } else { mdResultContainer.classList.add('hidden'); mdErrorMessage.classList.remove('hidden'); mdErrCodeSpan.textContent=code; } }
+    function updateMarketMap(address){ mdMapFrame.src=`https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`; }
+    function openDaumAddressSearch(keyword){ new daum.Postcode({oncomplete:function(d){ const zonecode=d.zonecode; const fullAddr=d.roadAddress||d.jibunAddress; mdInputKeyword.value=zonecode; mdSelectedAddressBox.classList.remove('hidden'); mdDisplaySelectedAddr.textContent=fullAddr; lookupMarketByPostcode(zonecode); }}).open({q:keyword}); }
+    mdSearchBtn.addEventListener('click',handleMarketSearchAction); mdInputKeyword.addEventListener('keypress',e=>{ if(e.key==='Enter') handleMarketSearchAction(); });
   </script>
 </body>
 </html>
