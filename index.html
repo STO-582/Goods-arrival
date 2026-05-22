@@ -20,11 +20,6 @@
     gtag('config', 'G-3MWM51MSF8');
   </script>
 
-  <!--
-    [최적화 v1.8.0] SheetJS를 메인 스레드에서 미리 로드하지 않음.
-    워커가 자체적으로 importScripts로 가져가므로 중복 로딩 제거.
-    html5-qrcode, lucide 등 무거운 라이브러리는 지연 로딩(lazy).
-  -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
   
@@ -246,7 +241,6 @@
 </head>
 <body>
 
-  <!-- [최적화] 상단 로딩 진행 바 -->
   <div id="load-progress-bar-wrap">
     <div id="load-progress-bar"></div>
   </div>
@@ -274,7 +268,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.8.0 (Optimized Loading)</span>
+      <span>Ver 1.8.1 (Dashboard Logic Fix)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -550,36 +544,12 @@
   </div>
 
   <script>
-  /* ============================================================
-     [v1.8.0] 최적화 핵심 변경사항 요약
-     
-     1. 단일 GET 요청: HEAD+GET 이중 요청 제거. 
-        → fetch() 한 번으로 ETag/Last-Modified + Body를 동시에 획득.
-        → 캐시 신선도는 Response.headers로 판단.
-     
-     2. 워커 내 SheetJS 1회 로드: 워커 코드를 Blob URL로 생성 시
-        importScripts CDN URL을 직접 삽입.
-        → 메인 스레드에서 SheetJS 중복 로드 완전 제거.
-     
-     3. 시트 인덱스 고정(index 6): 시트명 탐색 루프 제거.
-        "orderinformation1"을 이름으로 못 찾으면 즉시 index 6 사용.
-     
-     4. 워커 파싱 중 캐시 즉시 렌더: IndexedDB 캐시가 있으면
-        화면을 먼저 그리고, 워커는 백그라운드에서 신선도만 확인.
-        신선하면 재파싱·재렌더 없이 중단.
-     
-     5. processPivotData 워커 오프로드: pivot 집계 연산도
-        메인 스레드 블로킹 없이 워커에서 처리.
-     
-     6. 진행 바(Progress Bar): 사용자에게 로딩 피드백 제공.
-  ============================================================ */
-
   // ── 상수 ──
   const EXCEL_FILE_URL = './SSS%20ONLY_Goods%20Arrival.xlsb';
-  const DB_NAME        = 'STO582_CacheDB_v2'; // v2: 스키마 변경으로 기존 캐시와 분리
+  const DB_NAME        = 'STO582_CacheDB_v2'; 
   const STORE_NAME     = 'arrival_data';
   const CACHE_KEY      = 'excelData';
-  const SHEET_INDEX    = 6; // orderinformation1은 항상 7번째(index 6)에 고정
+  const SHEET_INDEX    = 6; 
 
   // ── 상태 ──
   let data             = [];
@@ -692,9 +662,7 @@
     }));
   }
 
-  // ── [핵심 최적화 1] Web Worker ──
-  // SheetJS는 워커 내부에서만 로드 (메인 스레드 중복 로딩 제거)
-  // 시트 인덱스를 상수 SHEET_INDEX(6)로 고정 → 이름 탐색 루프 + 2차 파싱 제거
+  // ── Web Worker ──
   function initExcelWorker() {
     if (excelWorker) return;
     const workerCode = `
@@ -707,7 +675,6 @@
       self.onmessage = function(e) {
         const { id, buf } = e.data;
         try {
-          /* [최적화] 단 1회 파싱 + 시트 인덱스 고정 */
           const wb = XLSX.read(buf, {
             type: 'array',
             dense: true,
@@ -716,7 +683,6 @@
             cellNF: false
           });
 
-          /* 이름으로 먼저 찾고, 없으면 고정 인덱스 */
           let sheetName = wb.SheetNames.find(n => n.toLowerCase().replace(/\\s/g,'').includes('orderinformation1'));
           if (!sheetName) sheetName = wb.SheetNames[SHEET_INDEX] || wb.SheetNames[0];
 
@@ -725,7 +691,6 @@
 
           const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankRows: false });
 
-          /* 헤더 행 탐색 (최대 20행) */
           let COL = { ItemNo:31, ItemName:32, PA:30, HFB:29, SSD:39, EDS:40, Qty:33, Status:9, Container:35, ConfirmedDate:36, ExpectedDate:14 };
           let startIndex = 1;
           for (let i = 0; i < Math.min(20, json.length); i++) {
@@ -758,7 +723,6 @@
             });
           }
 
-          /* [추가] Pivot 집계도 워커에서 처리해 메인 스레드 블로킹 방지 */
           const todayMs = Date.now() - (Date.now() % 86400000) - (new Date().getTimezoneOffset() * 60000);
           const pivotMap = {};
           const uniqueDates = new Set();
@@ -790,7 +754,7 @@
 
             let planType, dateStr;
             if (confMs !== null) {
-              if (confMs < todayMs) continue; /* 과거 확정 날짜 제외 */
+              if (confMs < todayMs) continue; 
               planType = 'confirmed';
               dateStr  = msToYmd(confMs);
             } else {
@@ -843,7 +807,6 @@
     });
   }
 
-  // ── [핵심 최적화 2] 단일 GET 요청으로 ETag + Body 동시 획득 ──
   async function fetchAndParse() {
     setProgress(10);
     const resp = await fetch(EXCEL_FILE_URL, { cache: 'no-store' });
@@ -870,7 +833,6 @@
     return { sha, data: result.data, pivotRows: result.pivotRows, sortedDates: result.sortedDates, hasNotFixed: result.hasNotFixed, finalDateMs, updateDateStr };
   }
 
-  // ── 메타 날짜 적용 ──
   function applyMetaDate(finalDateMs, updateDateStr) {
     document.getElementById('data-update-date').innerText = `data update : ${updateDateStr || '-'}`;
     document.getElementById('stale-alert').style.display = 'none';
@@ -880,7 +842,6 @@
     }
   }
 
-  // ── Pivot 데이터 적용 (워커 결과 직접 수신) ──
   function applyPivotResult(pivotRows, sortedDates, hasNotFixed) {
     allPivotRows      = pivotRows;
     globalSortedDates = sortedDates;
@@ -890,16 +851,14 @@
     }
   }
 
-  // ── 메인 로딩 파이프라인 ──
   window.onload = async function () {
     try {
       updateStatus('loading');
-      initExcelWorker(); // 워커를 미리 생성해 SheetJS import 시작
+      initExcelWorker(); 
 
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam  = urlParams.get('tab');
 
-      /* URL 파라미터 복원 */
       if (!urlParams.has('hfb')) {
         const saved = localStorage.getItem('last_hfb');
         if (saved && document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value = saved;
@@ -908,7 +867,6 @@
         if (document.getElementById('pf-pa'))  document.getElementById('pf-pa').value  = urlParams.get('pa')  || '';
       }
 
-      /* ── [최적화 3] 캐시 우선 렌더 ── */
       let cached = null;
       try { cached = await loadFromCache(CACHE_KEY); } catch (_) {}
 
@@ -919,21 +877,17 @@
         setProgress(95);
         setProgress(100);
 
-        /* 캐시 pivot 결과가 있으면 바로 화면에 적용 */
         if (cached.pivotRows && cached.sortedDates) {
           applyPivotResult(cached.pivotRows, cached.sortedDates, cached.hasNotFixed);
         } else {
-          /* 구버전 캐시: 로컬에서 재집계 */
           processPivotData(data);
         }
 
         initialLoadComplete = true;
         finishLoading(tabParam, urlParams);
 
-        /* ── 백그라운드 신선도 확인 ── */
         checkAndRefreshInBackground(cached.sha);
       } else {
-        /* 캐시 없음: 최초 로딩 */
         const fresh = await fetchAndParse();
         data = fresh.data;
         applyMetaDate(fresh.finalDateMs, fresh.updateDateStr);
@@ -961,22 +915,19 @@
     }
   };
 
-  /* [핵심 최적화 4] 백그라운드 신선도 확인: HEAD 요청으로 ETag만 비교 */
   async function checkAndRefreshInBackground(cachedSha) {
     try {
       const head = await fetch(EXCEL_FILE_URL, { method: 'HEAD', cache: 'no-store' });
       if (!head.ok) return;
 
       const serverSha = head.headers.get('ETag') || head.headers.get('Last-Modified') || 'unknown';
-      if (serverSha === cachedSha) return; /* 동일하면 재다운로드 없음 */
+      if (serverSha === cachedSha) return; 
 
-      /* 변경됐을 때만 전체 다운로드 */
       const fresh = await fetchAndParse();
       data = fresh.data;
       applyMetaDate(fresh.finalDateMs, fresh.updateDateStr);
       applyPivotResult(fresh.pivotRows, fresh.sortedDates, fresh.hasNotFixed);
 
-      /* 검색 탭이 열려있고 결과가 표시 중이면 재검색 */
       const currentInput = document.getElementById('itemInput')?.value?.trim();
       if (document.getElementById('resultSection').style.display === 'block' && currentInput) {
         performSearch(true);
@@ -993,7 +944,6 @@
       }).catch(e => console.warn('Cache save failed', e));
 
     } catch (e) {
-      /* 백그라운드 실패는 무시 */
       console.warn('Background refresh failed:', e);
     }
   }
@@ -1096,7 +1046,8 @@
       const key       = `${row.itemNo}__${container}__${keyStr}`;
       const qty       = safeNum(row.qty);
       if (grouped.has(key)) grouped.get(key).quantity += qty;
-      else grouped.set(key, { hfb: row.hfb, itemNo: row.itemNo, itemName: row.itemName, ssdRaw: row.ssd, edsRaw: row.eds, plannedDateStr: plan.label, plannedDateObj: plan.type !== 'tbd' ? plan.dateObj : null, quantity: qty, container });
+      // [수정점] plannedDateObj 값을 'confirmed' 인 경우에만 할당하도록 수정
+      else grouped.set(key, { hfb: row.hfb, itemNo: row.itemNo, itemName: row.itemName, ssdRaw: row.ssd, edsRaw: row.eds, plannedDateStr: plan.label, plannedDateObj: plan.type === 'confirmed' ? plan.dateObj : null, quantity: qty, container });
     }
     return Array.from(grouped.values());
   }
