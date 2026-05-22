@@ -1,0 +1,116 @@
+name: Convert XLSB to JSON
+
+on:
+  push:
+    paths:
+      - 'SSS ONLY_Goods Arrival.xlsb' # 이 파일이 업데이트될 때만 실행
+  workflow_dispatch: # 수동 실행 버튼 추가
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 리포지토리에 파일을 다시 쓰기 위한 권한
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyxlsb
+
+      - name: Convert XLSB to JSON
+        run: |
+          python -c "
+          import pandas as pd
+          import json
+          import os
+          from datetime import datetime
+
+          # 1. 파일 로드 (7번째 시트는 index 6)
+          file_path = 'SSS ONLY_Goods Arrival.xlsb'
+          try:
+              # 엑셀의 헤더가 1번째 줄(0)에 있다고 가정. 만약 다르면 skiprows 파라미터 추가 필요.
+              df = pd.read_excel(file_path, sheet_name=6, engine='pyxlsb')
+          except Exception as e:
+              print(f'Error reading Excel: {e}')
+              exit(1)
+
+          # 2. 열 이름(Column) 표준화 (공백 제거, 소문자화)
+          df.columns = df.columns.str.lower().str.replace(' ', '')
+
+          # 3. 필요한 데이터만 추출 및 이름 매핑
+          # 프론트엔드에서 요구하는 COL 변수 이름에 맞게 매핑
+          data = []
+          for _, row in df.iterrows():
+              # Pandas에서 NaN(빈 값) 처리
+              item_no = str(row.get('itemno', row.get('artno', ''))).split('.')[0].strip()
+              
+              if not item_no or item_no == 'nan' or len(item_no) < 4:
+                  continue
+                  
+              hfb = str(row.get('hfb', '')).split('.')[0].strip()
+              pa = str(row.get('pa', '')).split('.')[0].strip()
+              
+              # '0'으로만 이루어진 쓰레기 데이터 차단
+              if hfb == '00' or pa == '0000' or item_no.strip('0') == '':
+                 continue
+
+              # 날짜 처리 (Pandas의 datetime을 문자열로 변환)
+              def parse_date(date_val):
+                  if pd.isna(date_val): return ''
+                  try:
+                      d = pd.to_datetime(date_val)
+                      # 2000-01-01 무효 처리
+                      if d.year == 2000 and d.month == 1 and d.day == 1:
+                          return ''
+                      return d.strftime('%Y-%m-%d')
+                  except:
+                      return str(date_val)
+
+              data.append({
+                  'itemNo': item_no,
+                  'itemName': str(row.get('itemname', row.get('artname', ''))).replace('nan', ''),
+                  'pa': pa.replace('nan', ''),
+                  'hfb': hfb.replace('nan', ''),
+                  'ssdRaw': parse_date(row.get('ssd')),
+                  'edsRaw': parse_date(row.get('eds')),
+                  'qty': float(row.get('qty', row.get('latestqty', row.get('quantity', 0))) or 0),
+                  'status': str(row.get('status', '')).replace('nan', ''),
+                  'container': str(row.get('container', row.get('containerno', ''))).replace('nan', '').strip(),
+                  'confirmedDate': parse_date(row.get('confirmeddate', row.get('plannedreceivingdate'))),
+                  'expectedDate': parse_date(row.get('expecteddate', row.get('latestrcvdate', row.get('port'))))
+              })
+
+          # 4. JSON 파일 구조 생성
+          # 엑셀 파일의 마지막 수정 시간을 가져옴
+          stat_info = os.stat(file_path)
+          final_date_ms = int(stat_info.st_mtime * 1000)
+          update_date_str = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d')
+
+          output = {
+              'data': data,
+              'finalDateMs': final_date_ms,
+              'updateDateStr': update_date_str
+          }
+
+          # 5. 파일 저장
+          with open('arrival_data.json', 'w', encoding='utf-8') as f:
+              json.dump(output, f, ensure_ascii=False)
+          "
+
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add arrival_data.json
+          # 변경사항이 있을 때만 커밋
+          git commit -m "Auto-update arrival_data.json from XLSB" || exit 0
+          git push
