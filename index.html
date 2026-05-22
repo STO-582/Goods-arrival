@@ -36,7 +36,7 @@
     .header-sub-link{ color:var(--ikea-blue); text-decoration:none; font-weight:700; font-size:.95rem; font-family:'Roboto',sans-serif; display:flex; align-items:center; gap:6px; }
     .header-sub-link:hover { opacity: 0.8; }
     .header-right{ display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:2px; text-align:right; font-size:.75rem; line-height:1.2; opacity:.9; color:#111; }
-    #data-update-date{ color:var(--ikea-blue); font-weight:700; }
+    #data-update-date{ color:var(--ikea-blue); font-weight:700; text-shadow: none; }
     #stale-alert{ display:none; width:100%; background:#e74c3c; color:white; text-align:center; padding:10px; font-weight:bold; font-size:.9rem; z-index:1999; }
     #load-progress-bar-wrap{ display:none; width:100%; height:4px; background:#e0e0e0; position:fixed; top:0; left:0; z-index:9999; }
     #load-progress-bar{ height:4px; background:var(--ikea-blue); width:0%; transition:width .3s ease; }
@@ -102,7 +102,11 @@
     .pivot-header-wrapper{ width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
     .pivot-table{ min-width:1500px; table-layout:fixed; border-collapse:separate; border-spacing:0; }
     .pivot-table th,.market-table th{ background:#f1f2f6; color:#333; padding:12px 5px; border-right:1px solid #ddd; border-bottom:2px solid #ccc; font-size:.85rem; text-align:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,.1); cursor:pointer; user-select:none; white-space:nowrap; }
+    .pivot-table th:hover, .market-table th:hover { background-color: #e5e7eb; }
+    .sort-icon { margin-left: 5px; color: #aaa; font-size: 0.8em; }
+    .sort-icon.active { color: var(--ikea-blue); font-size: 0.9em; }
     .pivot-table td,.market-table td{ padding:8px 10px; border-right:1px solid #eee; border-bottom:1px solid #eee; font-size:.85rem; text-align:center; vertical-align:middle; }
+    .pivot-table tbody tr:hover, .market-table tbody tr:hover { background-color: #f9f9f9; }
     .col-hfb,.col-pa{ width:60px; }
     .col-itemno{ width:100px; }
     .col-itemname{ width:360px; text-align:left!important; padding-left:10px!important; }
@@ -157,7 +161,6 @@
       .dash-card{ padding:12px 5px; }
       .dash-card h3{ font-size:1.4rem; margin:0 0 5px 0; }
       .dash-card p{ font-size:.65rem; letter-spacing:-.3px; }
-      .dash-card.image-card { display: none !important; }
       .pivot-controls-right{ flex-direction:column; align-items:flex-end; gap:5px; }
       .btn-export-csv,.btn-copy{ padding:4px 8px; font-size:.75rem; }
       .mobile-only-filters{ display:flex; gap:10px; background:white; padding:15px; border-radius:8px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,.05); }
@@ -196,7 +199,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 2.0.0 (Data & UI Restore Perfected)</span>
+      <span>Ver 2.1.0 (Stable CSV & Strict Filters)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -319,10 +322,12 @@
 
   <script>
     const DATA_FILE_URL = './SSS%20ONLY_Goods%20Arrival.csv';
-    const DB_NAME = 'STO582_CacheDB_CSV_v5'; 
+    const DB_NAME = 'STO582_CacheDB_CSV_v6'; // DB 버전 업그레이드로 이전 캐시 리셋
     const STORE_NAME = 'arrival_data';
     const CACHE_KEY = 'csvData';
     const TARGET_CSV_FILENAME = 'FY26 Market Definition.csv';
+    // 안정적으로 작동하던 원본 고정 인덱스 (1.9.4 버전 롤백)
+    const COL = { ItemNo:31, ItemName:32, PA:30, HFB:29, SSD:39, EDS:40, Qty:33, Status:9, Container:35, ConfirmedDate:36, ExpectedDate:14 };
     const debounce = (fn,t=300)=>{ let tm; return (...a)=>{ clearTimeout(tm); tm=setTimeout(()=>fn(...a),t); }; };
     const safeNum = v => Number.isFinite(+v) ? +v : 0;
 
@@ -341,10 +346,32 @@
     let isMdLoaded = false;
     let html5QrcodeScanner = null;
 
+    const mdLoadingStatus = document.getElementById('md-loading-status');
+    const mdUploadSection = document.getElementById('md-upload-section');
+    const mdSearchSection = document.getElementById('md-search-section');
+    const mdDbStatusBadge = document.getElementById('md-db-status-badge');
+    const mdDbStatusSub = document.getElementById('md-db-status-sub');
+    const mdFileInput = document.getElementById('md-dropzone-file');
+    const mdSearchBtn = document.getElementById('md-search-btn');
+    const mdInputKeyword = document.getElementById('md-input-keyword');
+    const mdResultContainer = document.getElementById('md-result-container');
+    const mdErrorMessage = document.getElementById('md-error-message');
+    const mdErrCodeSpan = document.getElementById('md-err-code');
+    const mdResMarket = document.getElementById('md-res-market');
+    const mdResPMA = document.getElementById('md-res-pma');
+    const mdPmaLabel = document.getElementById('md-pma-label');
+    const mdResAddress = document.getElementById('md-res-address');
+    const mdResPostcodeVal = document.getElementById('md-res-postcode-val');
+    const mdMapFrame = document.getElementById('md-map-frame');
+    const mdSelectedAddressBox = document.getElementById('md-selected-address-box');
+    const mdDisplaySelectedAddr = document.getElementById('md-display-selected-addr');
+
     // 패딩 로직: 완벽한 필터링 일치를 위해 자동 변환
     function normalizeHfbKey(input){ const s=String(input||'').trim().replace(/\D/g,''); return s ? s.padStart(2,'0') : ''; }
     function normalizePaKey(input){ const s=String(input||'').trim().replace(/\D/g,''); return s ? s.padStart(4,'0') : ''; }
     function normalizeItemNoKey(input){ let s=String(input||'').trim().replace(/\D/g,''); if(!s) return ''; if(s.length===6 || s.length===7) return s.padStart(8,'0'); return s; }
+    function normalizeExactKey(raw){ return String(raw ?? '').trim().replace(/\D/g,''); }
+    function isAllZeroItemNo(raw){ const s=normalizeExactKey(raw); return s.length>0 && /^0+$/.test(s); }
     
     function isInvalidDateObject(d){ return !(d instanceof Date) || isNaN(d.getTime()); }
     const INVALID_DATE_STRINGS = new Set(['1900-01-00','1900/01/00','0000-00-00','0000/00/00', '2000-01-01', '2000/01/01']);
@@ -370,6 +397,7 @@
       } else if (v instanceof Date) { d = v; }
       
       if (isInvalidDateObject(d)) return null;
+      // "2000-01-01" 날짜 무효 처리
       if (d && d.getFullYear() === 2000 && d.getMonth() === 0 && d.getDate() === 1) return null;
       return d;
     }
@@ -383,60 +411,46 @@
     function saveToCache(key,val){ return openDB().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readwrite'); tx.objectStore(STORE_NAME).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(); })); }
     function loadFromCache(key){ return openDB().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const req=tx.objectStore(STORE_NAME).get(key); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(); })); }
 
-    // 다이나믹 열 매핑 및 완벽한 쓰레기 데이터 차단
+    // 원본 데이터 파싱 로직으로 롤백 (데이터 증발 문제 완벽 해결)
     function parseCsvText(text){
       const parsed=Papa.parse(text,{header:false,skipEmptyLines:true});
+      if(parsed.errors && parsed.errors.length) console.warn('CSV parse warnings:', parsed.errors);
       const rows=parsed.data||[]; 
-      let startIndex = 1;
+      let startIndex=1;
       
-      // Default Columns
-      let cItemNo=31, cItemName=32, cPA=30, cHFB=29, cSSD=39, cEDS=40, cQty=33, cStatus=9, cContainer=35, cConfDate=36, cExpDate=14;
-
-      for(let i=0; i<Math.min(20, rows.length); i++){
-        const row = rows[i];
-        if(!row) continue;
-        const rowStr = row.map(x => String(x||'').toLowerCase().replace(/\s/g,'')).join('');
-        if(rowStr.includes('itemno') || rowStr.includes('artno')) {
-            startIndex = i + 1;
-            const normHeader = row.map(x => String(x||'').toLowerCase().replace(/\s/g,''));
-            const findCol = (cands) => {
-                for(let c of cands) { const idx = normHeader.indexOf(c); if(idx !== -1) return idx; }
-                for(let j=0; j<normHeader.length; j++) { for(let c of cands) { if(normHeader[j].includes(c)) return j; } }
-                return -1;
-            };
-
-            const fItem = findCol(['itemno','artno']);
-            if (fItem !== -1) {
-                cItemNo = fItem;
-                const fName = findCol(['itemname','artname']); if(fName !== -1) cItemName = fName;
-                const fPA = findCol(['pa']); if(fPA !== -1) cPA = fPA;
-                const fHFB = findCol(['hfb']); if(fHFB !== -1) cHFB = fHFB;
-                const fSSD = findCol(['ssd']); if(fSSD !== -1) cSSD = fSSD;
-                const fEDS = findCol(['eds']); if(fEDS !== -1) cEDS = fEDS;
-                const fQty = findCol(['latestqty','qty','quantity']); if(fQty !== -1) cQty = fQty;
-                const fStat = findCol(['status','mainstatus','orderstatus']); if(fStat !== -1) cStatus = fStat;
-                const fCont = findCol(['container','containerno']); if(fCont !== -1) cContainer = fCont;
-                const fConf = findCol(['confirmeddate','plannedreceivingdate']); if(fConf !== -1) cConfDate = fConf;
-                const fExp = findCol(['expecteddate','latestrcvdate','port']); if(fExp !== -1) cExpDate = fExp;
-            }
-            break;
-        }
+      for(let i=0;i<Math.min(20,rows.length);i++){ 
+          const row=rows[i]; if(!row) continue; 
+          const v=String(row[COL.ItemNo]||'').toLowerCase().replace(/\s/g,''); 
+          if(v.includes('artno')||v.includes('item')){ startIndex=i+1; break; } 
       }
-
+      
       const out=[];
       for(let i=startIndex;i<rows.length;i++){
         const r=rows[i]; if(!r) continue;
-        const itemNoRaw=String(r[cItemNo] ?? '').trim();
+        const itemNoRaw=String(r[COL.ItemNo] ?? '').trim();
         if(!itemNoRaw || itemNoRaw.length<4) continue;
         
-        const hfbClean = normalizeHfbKey(r[cHFB]);
-        const paClean = normalizePaKey(r[cPA]);
+        const hfbClean = normalizeHfbKey(r[COL.HFB]);
+        const paClean = normalizePaKey(r[COL.PA]);
         const itemNoClean = normalizeItemNoKey(itemNoRaw);
         
+        // 쓰레기 데이터 원천 차단
         if (hfbClean === '00' || paClean === '0000' || /^0+$/.test(itemNoClean)) continue;
         
         const lc=itemNoRaw.toLowerCase(); if(lc.includes('art')||lc.includes('item')) continue;
-        out.push({ itemNo:itemNoClean, itemName:r[cItemName] ?? '', pa:paClean, hfb:hfbClean, ssdRaw:r[cSSD] ?? '', edsRaw:r[cEDS] ?? '', qty:safeNum(r[cQty]), status:r[cStatus] ?? '', container:String(r[cContainer] ?? '').trim(), confirmedDate:r[cConfDate] ?? '', expectedDate:r[cExpDate] ?? '' });
+        out.push({ 
+            itemNo:itemNoClean, 
+            itemName:r[COL.ItemName] ?? '', 
+            pa:paClean, 
+            hfb:hfbClean, 
+            ssdRaw:r[COL.SSD] ?? '', 
+            edsRaw:r[COL.EDS] ?? '', 
+            qty:safeNum(r[COL.Qty]), 
+            status:r[COL.Status] ?? '', 
+            container:String(r[COL.Container] ?? '').trim(), 
+            confirmedDate:r[COL.ConfirmedDate] ?? '', 
+            expectedDate:r[COL.ExpectedDate] ?? '' 
+        });
       }
       return out;
     }
@@ -461,12 +475,8 @@
       setProgress(40);
       const eTag=resp.headers.get('ETag'); const lastMod=resp.headers.get('Last-Modified'); const sha=eTag || lastMod || 'unknown';
       
-      const buf = await resp.arrayBuffer();
-      let text = new TextDecoder('utf-8').decode(buf);
-      // 깨짐 문자열의 유니코드 식별자()를 정확히 캐치하여 복구
-      if (text.indexOf('') !== -1) {
-          text = new TextDecoder('euc-kr').decode(buf);
-      }
+      // 안정적으로 작동했던 1.9.4 버전의 text() 파싱으로 원복
+      const text = await resp.text();
       
       setProgress(70);
       const parsedRows=parseCsvText(text); const pivot=buildPivotMain(parsedRows);
@@ -483,7 +493,7 @@
     window.onload = async function(){
       try{
         updateStatus('loading');
-        const urlParams=newSearchParams(window.location.search); const tabParam=urlParams.get('tab');
+        const urlParams=new URLSearchParams(window.location.search); const tabParam=urlParams.get('tab');
         if(!urlParams.has('hfb')){ const saved=localStorage.getItem('last_hfb'); if(saved && document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value=saved; }
         else { if(document.getElementById('pf-hfb')) document.getElementById('pf-hfb').value=urlParams.get('hfb')||''; if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value=urlParams.get('pa')||''; }
         let cached=null; try{ cached=await loadFromCache(CACHE_KEY); }catch(_){ }
@@ -491,9 +501,8 @@
         const fresh=await fetchAndParse(); applyDataset(fresh); setProgress(100); initialLoadComplete=true; finishLoading(tabParam,urlParams); saveToCache(CACHE_KEY,fresh).catch(console.warn);
       }catch(err){ console.error('Load Error:', err); updateStatus('error'); setProgress(100); }
     };
-    function newSearchParams(q){ return new URLSearchParams(q); } // fallback
 
-    async function checkAndRefreshInBackground(cachedSha){ try{ const head=await fetch(DATA_FILE_URL,{method:'HEAD',cache:'no-store'}); if(!head.ok) return; const serverSha=head.headers.get('ETag')||head.headers.get('Last-Modified')||'unknown'; if(serverSha===cachedSha) return; const fresh=await fetchAndParse(); applyDataset(fresh); saveToCache(CACHE_KEY,fresh).catch(console.warn); rerunSearchIfVisible(); }catch(e){ console.warn('Background refresh failed:', e); } }
+    async function checkAndRefreshInBackground(cachedSha){ try{ const head=await fetch(DATA_FILE_URL,{method:'HEAD',cache:'no-store'}); if(!head.ok) return; const serverSha=head.headers.get('ETag')||head.headers.get('Last-Modified')||'unknown'; if(serverSha===cachedSha) return; const fresh=await fetchAndParse(); applyDataset(fresh); setProgress(100); saveToCache(CACHE_KEY,fresh).catch(console.warn); rerunSearchIfVisible(); }catch(e){ console.warn('Background refresh failed:', e); setProgress(100); } }
     function rerunSearchIfVisible(){ const currentInput=document.getElementById('itemInput')?.value?.trim(); if(document.getElementById('resultSection').style.display==='block' && currentInput) performSearch(true); }
     function finishLoading(tabParam,urlParams){ if(tabParam==='arrival') switchTab('arrival'); else if(tabParam==='search'){ switchTab('search'); if(urlParams.has('itemNo')){ document.getElementById('itemInput').value=urlParams.get('itemNo'); performSearch(); } } else if(tabParam==='market') switchTab('market'); }
     function updateStatus(status){ const b1=document.getElementById('statusBadge1'), b2=document.getElementById('statusBadge2'); if(status==='connected'){ b1.innerHTML='<i class="fas fa-check-circle"></i>'; b1.className='status-badge connected'; b2.innerHTML='<i class="fas fa-check-circle"></i>'; b2.className='status-badge connected'; } else if(status==='loading'){ b1.innerHTML='<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b1.className='status-badge'; b2.innerHTML='<i class="fas fa-spinner fa-spin"></i> 로딩 중...'; b2.className='status-badge'; } else { b1.innerHTML='<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b1.className='status-badge error'; b2.innerHTML='<i class="fas fa-exclamation-triangle"></i> 연결 실패'; b2.className='status-badge error'; } }
@@ -507,6 +516,7 @@
       if(confDate){ const dd=new Date(confDate); dd.setHours(0,0,0,0); return {type:'confirmed',confirmedDateObj:dd,label:`<span class="date-badge confirmed">${ymd(dd)}</span>`}; } 
       if(expDate){ const dd=new Date(expDate); dd.setHours(0,0,0,0); return {type:'estimated',estimatedDateObj:dd,label:`<span class="date-badge estimated">WK${getWeekNumber(dd)} 예상</span>`}; } 
       let statusTxt=row.status ? String(row.status).toUpperCase() : '미정'; 
+      // DISPATCHED 처리
       if(statusTxt.includes('DISPATCHED')) statusTxt = '미정';
       return {type:'tbd',label:`<span class="date-badge tbd">${statusTxt}</span>`}; 
     }
@@ -528,6 +538,7 @@
         else grouped.set(key,{ 
           hfb:row.hfb, itemNo, itemName:row.itemName, ssdRaw:row.ssdRaw, edsRaw:row.edsRaw, 
           plannedDateStr:plan.label, 
+          // 확정 데이터만 대시보드 요약용 날짜로 전달
           plannedDateObj: plan.type === 'confirmed' ? plan.confirmedDateObj : null, 
           planType:plan.type, quantity:qty, container:row.container||'배송준비중' 
         }); 
@@ -651,8 +662,10 @@
         } 
         
         const filteredRows=allPivotRows.filter(row=>{ 
+            // HFB, PA 완벽한 완전 일치 필터링
             if(hfbVal && row.hfb !== hfbVal) return false; 
             if(paVal && row.pa !== paVal) return false; 
+            // Item No는 패딩된 상태에서 부분/완전 검색 
             if(itemNoVal && !row.itemNo.includes(itemNoVal)) return false; 
             if(itemNameVal && String(row.itemName).toUpperCase().indexOf(itemNameVal)===-1) return false; 
             if(hasDateFilter){ 
@@ -687,9 +700,7 @@
         requestAnimationFrame(renderChunk); 
     }
 
-    /* ========================================================
-       이하 카메라 스캐너, 마켓 맵 코드 유지
-       ======================================================== */
+    let html5QrcodeScanner=null;
     function loadQrCodeLib(cb){ if(typeof Html5Qrcode!=='undefined'){ cb(); return; } const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode'; s.onload=cb; document.head.appendChild(s); }
     function startScanner(){ loadQrCodeLib(()=>{ document.getElementById('scanner-modal').style.display='flex'; if(!html5QrcodeScanner) html5QrcodeScanner=new Html5Qrcode('reader'); html5QrcodeScanner.start({facingMode:'environment'},{fps:15,qrbox:{width:300,height:150},aspectRatio:1.0},onScanSuccess).catch(()=>alert('Camera Error')); }); }
     function onScanSuccess(t){ let n=t.replace(/[^0-9]/g,''); if(n.length>=8) n=n.substring(0,8); document.getElementById('itemInput').value=n; stopScanner(); performSearch(); }
