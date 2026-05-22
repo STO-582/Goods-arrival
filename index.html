@@ -24,9 +24,11 @@
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
       tailwind.config = { corePlugins: { preflight: false } }
@@ -75,9 +77,9 @@
     .cb-green { background: #d4edda; } .cb-yellow { background: #fff3cd; } .cb-red { background: #f8d7da; }
 
     /* Components */
-    .status-badge{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:bold; background:#fff3cd; color:#856404; white-space: nowrap; }
-    .status-badge.connected{ background:#d4edda; color:#155724; }
-    .status-badge.error{ background:#f8d7da; color:#721c24; }
+    .status-badge{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:bold; background:#fff3cd; color:#856404; white-space: nowrap; border: 1px solid #ffeeba; }
+    .status-badge.connected{ background:#d4edda; color:#155724; border-color: #c3e6cb; }
+    .status-badge.error{ background:#f8d7da; color:#721c24; border-color: #f5c6cb; }
     
     .btn-export-csv { background-color: #217346; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
     .btn-export-csv:hover { background-color: #1e6b3e; }
@@ -282,7 +284,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span>Ver 1.6.0 (Chunking + Worker Fast Load)</span>
+      <span>Ver 1.7.0 (Error Free & Bypass API)</span>
       <div id="data-update-date">data update : -</div>
     </div>
   </header>
@@ -572,10 +574,8 @@
   <script>
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    // GitHub 레포지토리 정보 (STO582)
-    const GITHUB_OWNER = 'STO-582'; 
-    const GITHUB_REPO = 'Goods-arrival'; 
-    const FALLBACK_FILE_URL = './SSS ONLY_Goods Arrival.xlsb'; 
+    // 1. GitHub API 횟수 제한(Rate Limit)을 우회하기 위해 다이렉트 경로 사용
+    const EXCEL_FILE_URL = './SSS%20ONLY_Goods%20Arrival.xlsb'; 
 
     let rawRows = []; let data = []; let html5QrcodeScanner = null;
     let allPivotRows = []; let displayedPivotRows = []; let globalSortedDates = [];
@@ -643,7 +643,7 @@
         });
     }
 
-    // [최적화 V1.6.0 핵심] Transferable Object를 활용하여 메인 스레드 멈춤 없이 1초만에 다이어트 데이터만 넘겨받음
+    // 2. 완벽하게 최적화된 워커 (오류 방지 및 가벼운 배열 전송)
     function initExcelWorker() {
       if (excelWorker) return;
       const workerCode = `
@@ -652,22 +652,27 @@
         function safeNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
         self.onmessage = function(e) {
-          const { id, buf } = e.data; // ArrayBuffer를 소유권 이전 방식으로 받아옴 (초고속)
+          const { id, buf } = e.data;
           try {
-            // 오직 7번째 시트만 다이렉트 파싱 (가장 가벼운 옵션 적용)
+            const wbMeta = XLSX.read(buf, { type: 'array', bookSheets: true });
+            
+            // 안전하게 타겟 시트 찾기 (순서가 바뀌어도 이름으로 추적)
+            let targetSheetName = wbMeta.SheetNames.find(n => n.toLowerCase().includes('orderinformation1'));
+            if (!targetSheetName) targetSheetName = wbMeta.SheetNames[6];
+            if (!targetSheetName) targetSheetName = wbMeta.SheetNames[0];
+
             const wb = XLSX.read(buf, {
               type: 'array',
-              sheets: 6, // 7번째 시트(index 6) 하드코딩
+              sheets: [targetSheetName],
               dense: true,
               cellDates: false,
               cellStyles: false,
               cellNF: false
             });
 
-            const targetSheetName = wb.SheetNames[0];
             const ws = wb.Sheets[targetSheetName];
-            if (!ws) throw new Error('7번째 시트(orderinformation1) 데이터가 없습니다.');
-
+            if (!ws) throw new Error('데이터 시트를 읽을 수 없습니다.');
+            
             if (ws['!ref']) {
               const range = XLSX.utils.decode_range(ws['!ref']);
               ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r, c: range.e.c } });
@@ -690,7 +695,6 @@
             const rawRows = json.slice(startIndex);
             const out = [];
 
-            // 쓰레기 데이터를 모두 버리고 가벼운 알짜 객체만 추출
             for (let i = 0; i < rawRows.length; i++) {
                 const r = rawRows[i];
                 if (!r) continue;
@@ -737,7 +741,6 @@
       return new Promise((resolve, reject) => {
         const id = ++workerReqId;
         workerPending.set(id, { resolve, reject });
-        // ArrayBuffer의 소유권을 워커로 완전히 넘겨 복사 병목을 차단 (Transferable Object)
         excelWorker.postMessage({ id, buf }, [buf]);
       });
     }
@@ -896,26 +899,6 @@
         }
     }
 
-    async function loadExcelFile(fileUrl) {
-      const resp = await fetch(fileUrl, { cache: 'no-store' });
-      if (!resp.ok) throw new Error('Excel download failed');
-      const headerDateStr = resp.headers.get('Last-Modified');
-      const buf = await resp.arrayBuffer();
-      // 워커로 넘길 때 통신 병목 없이 엑셀 데이터 파싱
-      const { data: parsedData, modifiedDate } = await parseExcelInWorker(buf);
-      
-      let finalDateMs = modifiedDate || null;
-      if (!finalDateMs && headerDateStr) {
-        const parsed = new Date(headerDateStr);
-        if (!isNaN(parsed)) finalDateMs = parsed.getTime();
-      }
-      return {
-        data: parsedData,
-        finalDateMs,
-        updateDateStr: finalDateMs ? ymd(new Date(finalDateMs)) : '-'
-      };
-    }
-
     function afterDataRefresh() {
       if (document.getElementById('tab-arrival').classList.contains('active')) {
         allPivotRows = [];
@@ -927,9 +910,56 @@
       }
     }
 
-    // 메인 로딩 함수
+    // 3. 다이렉트 파일 패치 (API 우회) + 초고속 HEAD 요청 캐싱 확인
+    async function loadLatestData() {
+        try {
+            // HEAD 요청으로 ETag나 갱신 일자만 0.01초만에 가져옵니다.
+            const headResp = await fetch(EXCEL_FILE_URL, { method: 'HEAD', cache: 'no-store' });
+            if (!headResp.ok) throw new Error("File not found on server");
+            
+            const eTag = headResp.headers.get('ETag');
+            const lastMod = headResp.headers.get('Last-Modified');
+            const currentSha = eTag || lastMod || 'unknown_sha';
+
+            let cached = null;
+            try { cached = await loadFromCache(CACHE_KEY); } catch (_) {}
+
+            // 이미 최신 캐시를 보유중이라면 다운로드 취소
+            if (cached && cached.sha === currentSha && Array.isArray(cached.data) && cached.data.length > 0) {
+                return { isCached: true, data: cached.data, sha: currentSha, finalDateMs: cached.finalDateMs, updateDateStr: cached.updateDateStr };
+            }
+
+            // 캐시가 없거나 파일이 갱신되었다면 실제 다운로드 진행
+            const resp = await fetch(EXCEL_FILE_URL, { cache: 'no-store' });
+            const buf = await resp.arrayBuffer();
+            
+            // Worker를 통해 메인 스레드 멈춤 없이 백그라운드 초고속 파싱
+            const { data: parsedData, modifiedDate } = await parseExcelInWorker(buf);
+            
+            let finalDateMs = modifiedDate || null;
+            if (!finalDateMs && lastMod) {
+                const parsed = new Date(lastMod);
+                if (!isNaN(parsed)) finalDateMs = parsed.getTime();
+            }
+            
+            return {
+                isCached: false,
+                data: parsedData,
+                sha: currentSha,
+                finalDateMs: finalDateMs,
+                updateDateStr: finalDateMs ? ymd(new Date(finalDateMs)) : '-'
+            };
+
+        } catch (e) {
+            console.error("Load Error:", e);
+            throw e;
+        }
+    }
+
+    // 메인 로딩 파이프라인
     window.onload = async function(){
       try{
+        updateStatus('loading'); // 확실한 로딩 피드백
         initExcelWorker();
         const urlParams = new URLSearchParams(window.location.search);
         const tabParam = urlParams.get('tab');
@@ -942,7 +972,7 @@
             if(document.getElementById('pf-pa')) document.getElementById('pf-pa').value = urlParams.get('pa') || '';
         }
 
-        // 1) 로컬 캐시 즉시 적용 (있다면 0초만에 화면 그림)
+        // 캐시 우선 표시 시도
         let cached = null;
         try { cached = await loadFromCache(CACHE_KEY); } catch (_) {}
         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
@@ -953,15 +983,13 @@
             initialLoadComplete = true;
         }
 
-        // 2) 백그라운드에서 최신 파일 확인
-        const fileInfo = await fetchLatestExcelInfo();
-        if (!fileInfo) throw new Error('Excel file not found on GitHub');
+        // 백그라운드 최신화 및 파싱
+        const loaded = await loadLatestData();
+        
+        // 동일 캐시면 중단
+        if (loaded.isCached) return;
 
-        // 3) 캐시가 최신이면 다운로드 중단
-        if (cached && cached.sha === fileInfo.sha) return;
-
-        // 4) 최신 파일 다운로드 및 파싱
-        const loaded = await loadExcelFile(fileInfo.url);
+        // 새 데이터 적용
         data = loaded.data;
         applyMetaDate(loaded.finalDateMs, loaded.updateDateStr);
         updateStatus('connected');
@@ -973,9 +1001,9 @@
             afterDataRefresh();
         }
 
-        // 5) 캐시 갱신
+        // 새 캐시 저장
         saveToCache(CACHE_KEY, {
-            sha: fileInfo.sha,
+            sha: loaded.sha,
             data: data,
             updateDateStr: loaded.updateDateStr,
             finalDateMs: loaded.finalDateMs
@@ -998,30 +1026,18 @@
         }
     }
 
-    async function fetchLatestExcelInfo() {
-        if (GITHUB_OWNER === 'YOUR_GITHUB_ID') return { url: FALLBACK_FILE_URL, sha: 'local' }; 
-        try {
-            const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/`;
-            const response = await fetch(apiUrl, { cache: 'no-store' });
-            if (!response.ok) throw new Error("API Error");
-            const files = await response.json();
-            
-            const targetFiles = files.filter(f => 
-                f.name.toLowerCase().endsWith(".xlsb") && 
-                !f.name.startsWith("~$") && 
-                f.name.toLowerCase().includes("goods arrival")
-            );
-            
-            if (targetFiles.length === 0) return { url: FALLBACK_FILE_URL, sha: 'fallback' };
-            targetFiles.sort((a, b) => b.name.localeCompare(a.name));
-            return { url: targetFiles[0].download_url, sha: targetFiles[0].sha };
-        } catch (e) { return { url: FALLBACK_FILE_URL, sha: 'fallback' }; }
-    }
-
     function updateStatus(status) {
       const b1 = document.getElementById('statusBadge1'); const b2 = document.getElementById('statusBadge2');
-      if (status === 'connected') { b1.innerHTML = `<i class="fas fa-check-circle"></i>`; b1.className = 'status-badge connected'; b2.innerHTML = `<i class="fas fa-check-circle"></i>`; b2.className = 'status-badge connected'; } 
-      else { b1.innerHTML = `<i class="fas fa-exclamation-triangle"></i>`; b1.className = 'status-badge error'; b2.innerHTML = `<i class="fas fa-exclamation-triangle"></i>`; b2.className = 'status-badge error'; }
+      if (status === 'connected') { 
+          b1.innerHTML = `<i class="fas fa-check-circle"></i>`; b1.className = 'status-badge connected'; 
+          b2.innerHTML = `<i class="fas fa-check-circle"></i>`; b2.className = 'status-badge connected'; 
+      } else if (status === 'loading') {
+          b1.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 로딩 중...`; b1.className = 'status-badge'; 
+          b2.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 로딩 중...`; b2.className = 'status-badge'; 
+      } else { 
+          b1.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 연결 실패`; b1.className = 'status-badge error'; 
+          b2.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 연결 실패`; b2.className = 'status-badge error'; 
+      }
     }
 
     function switchTab(tabName) {
@@ -1284,7 +1300,7 @@
         }
     }
 
-    // [최적화 V1.6.0 핵심] Chunking을 통한 부드러운 테이블 렌더링
+    // [최적화 V1.7.0] Chunking Rendering
     function processPivotData(list, shouldRender = true) {
         const today = new Date(); today.setHours(0,0,0,0);
         const pivotMap = {}; const uniqueDates = new Set(); let hasNotFixed = false;
@@ -1475,7 +1491,6 @@
 
       displayedPivotRows = filteredRows;
 
-      // [최적화 V1.6.0 핵심] Chunking Rendering (화면 버벅임 방지)
       const tbody = document.getElementById('pivotBody');
       tbody.innerHTML = "";
       
